@@ -6,22 +6,23 @@
   <title>Projector Calculator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
-    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    h1 { color: #0C3C6B; text-align: center; }
-    .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; }
-    label { display: inline-block; width: 180px; font-weight: bold; }
-    input, select { padding: 10px; width: 240px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    h1 { color: #0C3C6B; text-align: center; margin-bottom: 10px; }
+    .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+    label { display: inline-block; width: 190px; font-weight: bold; }
+    input, select { padding: 10px; width: 250px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #0C3C6B; color: white; }
     .result { font-weight: bold; color: #0C3C6B; }
+    .note { font-size: 0.9em; color: #666; margin-top: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Projector Image & Lens Calculator</h1>
 
-    <!-- Screen Size Section -->
+    <!-- SCREEN SIZE -->
     <div class="section">
       <h2>1. Screen Size</h2>
       <div>
@@ -49,24 +50,64 @@
       </div>
     </div>
 
-    <!-- Throw Distance & Lens -->
+    <!-- PROJECTION & LENS -->
     <div class="section">
-      <h2>2. Projection Distance & Lens</h2>
+      <h2>2. Projection Distance & Lens Recommendation</h2>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="5.0" step="0.1">
+        <input type="number" id="distance" value="5.0" step="0.1" placeholder="Leave blank to see all lenses">
       </div>
       <div id="lens-table"></div>
     </div>
 
-    <p style="text-align:center; color:#666; margin-top:30px;">
-      Built for <strong>Your Company Name</strong> — Results are approximate (±5%)
-    </p>
+    <div class="note">
+      * Values are approximate (±5%). Always verify with actual projector specifications.<br>
+      * Projection Distance is always in Meters.
+    </div>
   </div>
 
   <script>
-    // Your full logic will go here (I'll expand it in the next message if you want)
-    // For now, basic version is ready
+    const aspectSelect = document.getElementById('aspect');
+    const unitsSelect = document.getElementById('units');
+    const widthInput = document.getElementById('width');
+    const distanceInput = document.getElementById('distance');
+    const heightSpan = document.getElementById('height');
+    const diagonalSpan = document.getElementById('diagonal');
+    const unit1 = document.getElementById('unit1');
+    const unit2 = document.getElementById('unit2');
+    const tableDiv = document.getElementById('lens-table');
+
+    let currentData = []; // Will hold lens data (you can expand this later)
+
+    function updateImageSize() {
+      let w = parseFloat(widthInput.value) || 3.0;
+      let ratio = 9/16;
+
+      switch(aspectSelect.value) {
+        case "16:9": ratio = 9/16; break;
+        case "16:10": ratio = 10/16; break;
+        case "4:3": ratio = 3/4; break;
+      }
+
+      heightSpan.textContent = (w * ratio).toFixed(3);
+      diagonalSpan.textContent = Math.sqrt(w*w + (w*ratio)*(w*ratio)).toFixed(3);
+    }
+
+    // Initial run + listeners
+    widthInput.addEventListener('input', updateImageSize);
+    aspectSelect.addEventListener('change', updateImageSize);
+    unitsSelect.addEventListener('change', updateImageSize);
+    updateImageSize();
+
+    // Placeholder for full lens table (we can expand this later)
+    function renderLensTable() {
+      tableDiv.innerHTML = `
+        <p><strong>Note:</strong> Full lens recommendation table will be added in the next update.</p>
+        <p>Currently working: Screen Size + Unit Conversion</p>
+      `;
+    }
+
+    renderLensTable();
   </script>
 </body>
 </html>
