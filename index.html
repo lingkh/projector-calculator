@@ -167,7 +167,7 @@
     ];
 
     // Populate Model Dropdown
-const modelSelect = document.getElementById('model');
+    const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
       const opt = document.createElement('option');
@@ -206,6 +206,19 @@ const modelSelect = document.getElementById('model');
       document.getElementById('width').value = w.toFixed(3);
       document.getElementById('height').value = h.toFixed(3);
       document.getElementById('diagonal').value = d.toFixed(3);
+    }
+
+    function applyUnitConversion() {
+      const isInches = document.getElementById('units').value === "Inches";
+      const conv = isInches ? 39.3701 : 1/39.3701;
+
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      let d = parseFloat(document.getElementById('diagonal').value) || 3.538;
+
+      document.getElementById('width').value = (w * conv).toFixed(3);
+      document.getElementById('height').value = (h * conv).toFixed(3);
+      document.getElementById('diagonal').value = (d * conv).toFixed(3);
     }
 
     function renderLensTable() {
@@ -248,7 +261,7 @@ const modelSelect = document.getElementById('model');
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners - Support Enter key + blur
+    // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); renderLensTable(); });
@@ -262,7 +275,10 @@ const modelSelect = document.getElementById('model');
     });
 
     document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
-    document.getElementById('units').addEventListener('change', () => { updateImageSize(); renderLensTable(); });
+    document.getElementById('units').addEventListener('change', () => {
+      applyUnitConversion();
+      renderLensTable();
+    });
     document.getElementById('distance').addEventListener('input', renderLensTable);
     modelSelect.addEventListener('change', renderLensTable);
 
