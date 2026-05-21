@@ -104,8 +104,8 @@
     </div>
   </div>
 
-  <script>
-    // ================== FULL DATABASE (your data) ==================
+<script>
+    // ================== FULL DATABASE ==================
     const database = [
       {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000},
       {model:"XP-P621U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:6200},
@@ -196,7 +196,6 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-    // Populate Model Dropdown
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -207,6 +206,16 @@
     });
 
     let lastChanged = 'width';
+
+    function getImageWidthInMeters() {
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      return document.getElementById('units').value === "Inches" ? w / 39.3701 : w;
+    }
+
+    function getImageHeightInMeters() {
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      return document.getElementById('units').value === "Inches" ? h / 39.3701 : h;
+    }
 
     function updateImageSize(changedField = null) {
       if (changedField) lastChanged = changedField;
@@ -241,11 +250,6 @@
       renderLensTable();
     }
 
-    function getImageWidthInMeters() {
-      let w = parseFloat(document.getElementById('width').value) || 3.0;
-      return document.getElementById('units').value === "Inches" ? w / 39.3701 : w;
-    }
-
     function applyUnitConversion() {
       const isInches = document.getElementById('units').value === "Inches";
       const conv = isInches ? 39.3701 : 1/39.3701;
@@ -263,12 +267,16 @@
       const lumens = parseFloat(document.getElementById('lumens').value) || 0;
       const gain = parseFloat(document.getElementById('gain').value) || 1;
       const ambient = parseFloat(document.getElementById('ambient').value) || 0;
-      const area = parseFloat(document.getElementById('area').textContent) || 5.625;
+
+      const widthM = getImageWidthInMeters();
+      const heightM = getImageHeightInMeters();
+      const area = widthM * heightM;
 
       const illuminance = (lumens * gain) / area;
       const luminance = illuminance / Math.PI;
       const effective = Math.max(luminance - ambient * 0.35, 5);
 
+      document.getElementById('area').textContent = area.toFixed(2);
       document.getElementById('illuminance').textContent = illuminance.toFixed(2);
       document.getElementById('luminance').textContent = luminance.toFixed(2);
       document.getElementById('effective').textContent = effective.toFixed(2);
@@ -280,10 +288,10 @@
       else verdict = "Too Dim";
 
       document.getElementById('verdict').textContent = verdict;
+      document.getElementById('verdict').style.color = effective > 150 ? "green" : (effective > 70 ? "orange" : "red");
     }
 
     function renderLensTable() {
-      // (same as previous working version)
       const selectedModel = modelSelect.value;
       const dist = parseFloat(document.getElementById('distance').value);
       const imageW = getImageWidthInMeters();
@@ -323,15 +331,6 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Auto-update Lumens when model changes
-    modelSelect.addEventListener('change', () => {
-      const selected = modelSelect.value;
-      const proj = database.find(l => l.model === selected);
-      if (proj) document.getElementById('lumens').value = proj.lumens;
-      updateBrightness();
-      renderLensTable();
-    });
-
     // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
@@ -346,10 +345,20 @@
     });
 
     document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
-    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
+    document.getElementById('units').addEventListener('change', () => {
+      applyUnitConversion();
+      renderLensTable();
+    });
     document.getElementById('distance').addEventListener('input', renderLensTable);
     document.getElementById('gain').addEventListener('change', updateBrightness);
     document.getElementById('ambient').addEventListener('input', updateBrightness);
+    modelSelect.addEventListener('change', () => {
+      const selected = modelSelect.value;
+      const proj = database.find(l => l.model === selected);
+      if (proj) document.getElementById('lumens').value = proj.lumens;
+      updateBrightness();
+      renderLensTable();
+    });
 
     // Initial load
     updateImageSize('width');
