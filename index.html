@@ -16,6 +16,7 @@
     th { background: #0C3C6B; color: white; }
     .result { font-weight: bold; color: #0C3C6B; }
     .note { font-size: 0.9em; color: #555; margin-top: 15px; }
+    .good { color: green; }
   </style>
 </head>
 <body>
@@ -61,13 +62,13 @@
     </div>
 
     <div class="note">
-      * All calculations use Meters internally for accuracy.<br>
-      * Results are approximate (±5%). Always verify with official projector specifications.
+      * Projection Distance is always in Meters.<br>
+      * Results are approximate (±5%). Always verify with official specifications.
     </div>
   </div>
 
   <script>
-    // Core variables
+    // ================== CORE VARIABLES ==================
     const aspectSelect = document.getElementById('aspect');
     const unitsSelect = document.getElementById('units');
     const widthInput = document.getElementById('width');
@@ -77,6 +78,14 @@
     const unit1 = document.getElementById('unit1');
     const unit2 = document.getElementById('unit2');
     const tableDiv = document.getElementById('lens-table');
+
+    // Sample Lens Database (you can expand this easily)
+    const lensDatabase = [
+      {model: "XP-V731U-B", lens: "XP40ZL", trWide: 0.79, trTele: 1.11},
+      {model: "XP-V731U-B", lens: "XP41ZL", trWide: 1.30, trTele: 3.02},
+      {model: "XP-V731U-B", lens: "XP43ZL", trWide: 2.99, trTele: 5.93},
+      // Add more lenses here...
+    ];
 
     function updateImageSize() {
       let w = parseFloat(widthInput.value) || 3.0;
@@ -92,19 +101,41 @@
       diagonalSpan.textContent = Math.sqrt(w*w + (w*ratio)*(w*ratio)).toFixed(3);
     }
 
-    // Update on any change
-    widthInput.addEventListener('input', updateImageSize);
-    aspectSelect.addEventListener('change', updateImageSize);
-    unitsSelect.addEventListener('change', updateImageSize);
-    updateImageSize();
-
-    // Placeholder Lens Table (we'll expand this with real data next)
     function renderLensTable() {
-      tableDiv.innerHTML = `
-        <p><strong>✅ Working:</strong> Screen Size Calculator with unit conversion</p>
-        <p>Next step: Full lens recommendation table + Brightness analysis</p>
-      `;
+      let html = `<table><tr><th>Lens Name</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
+
+      lensDatabase.forEach(lens => {
+        const imageW = parseFloat(widthInput.value) || 3.0;
+        const minDist = (lens.trWide * imageW).toFixed(2);
+        const maxDist = (lens.trTele * imageW).toFixed(2);
+        html += `<tr>
+          <td>${lens.lens}</td>
+          <td>${lens.trWide}</td>
+          <td>${lens.trTele}</td>
+          <td>${minDist}</td>
+          <td>${maxDist}</td>
+          <td class="good">Available</td>
+        </tr>`;
+      });
+
+      html += `</table>`;
+      tableDiv.innerHTML = html;
     }
+
+    // Event Listeners
+    widthInput.addEventListener('input', () => {
+      updateImageSize();
+      renderLensTable();
+    });
+    aspectSelect.addEventListener('change', () => {
+      updateImageSize();
+      renderLensTable();
+    });
+    unitsSelect.addEventListener('change', updateImageSize);
+    distanceInput.addEventListener('input', renderLensTable);
+
+    // Initial load
+    updateImageSize();
     renderLensTable();
   </script>
 </body>
