@@ -313,9 +313,9 @@
 
       let verdict = "";
       let color = "black";
-      if (effective > 200) { verdict = "Excellent for bright rooms"; color = "green"; }
-      else if (effective > 120) { verdict = "Good"; color = "green"; }
-      else if (effective > 70) { verdict = "Acceptable"; color = "orange"; }
+      if (effective > 450) { verdict = "Excellent for bright rooms"; color = "green"; }
+      else if (effective > 300) { verdict = "Good"; color = "green"; }
+      else if (effective > 150) { verdict = "Acceptable"; color = "orange"; }
       else { verdict = "Too Dim"; color = "red"; }
 
       document.getElementById('verdict').textContent = verdict;
