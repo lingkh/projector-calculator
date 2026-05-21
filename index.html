@@ -15,16 +15,13 @@
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #0C3C6B; color: white; }
     .good { color: green; font-weight: bold; }
+    .note { font-size: 0.9em; color: #555; margin-top: 15px; }
 
-    /* Brightness Table - Professional Alignment */
-    .brightness-table { width: 100%; border-collapse: collapse; }
-    .brightness-table td { padding: 14px 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
-    .brightness-table .label { font-weight: bold; width: 260px; color: #333; }
-    .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; width: 180px; }
-    .highlight { background: #e8f5e9 !important; font-weight: bold; }
-    .verdict { font-size: 1.2em; padding: 10px 16px; border-radius: 8px; display: inline-block; }
-
-    .note { font-size: 0.9em; color: #555; margin-top: 20px; }
+    .brightness-table td { padding: 14px 10px; border-bottom: 1px solid #eee; }
+    .brightness-table .label { font-weight: bold; width: 260px; }
+    .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; }
+    .highlight { background: #e8f5e9 !important; }
+    .verdict { font-size: 1.2em; padding: 10px 16px; border-radius: 8px; display: inline-block; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -219,6 +216,7 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
+    // Populate Model Dropdown + Set Default Lumens
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -227,6 +225,15 @@
       opt.textContent = m;
       modelSelect.appendChild(opt);
     });
+
+    // Set default model and lumens on load
+    function setDefaultModel() {
+      modelSelect.value = "XP-A175U-B"; // Change this to your preferred default model
+      const defaultProj = database.find(l => l.model === modelSelect.value);
+      if (defaultProj) {
+        document.getElementById('lumens').value = defaultProj.lumens;
+      }
+    }
 
     let lastChanged = 'width';
 
@@ -381,10 +388,14 @@
       renderLensTable();
     });
 
-    // Initial load
+    // Initial load with default lumens
     updateImageSize('width');
     renderLensTable();
-    updateBrightness();
+    setTimeout(() => {
+      const defaultProj = database.find(l => l.model === modelSelect.value);
+      if (defaultProj) document.getElementById('lumens').value = defaultProj.lumens;
+      updateBrightness();
+    }, 100);
   </script>
 </body>
 </html>
