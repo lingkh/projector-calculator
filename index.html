@@ -6,8 +6,8 @@
   <title>Projector Calculator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
-    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    h1 { color: #0C3C6B; text-align: center; margin-bottom: 10px; }
+    .container { max-width: 1100px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    h1 { color: #0C3C6B; text-align: center; }
     .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
     label { display: inline-block; width: 190px; font-weight: bold; }
     input, select { padding: 10px; width: 250px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
@@ -15,14 +15,14 @@
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #0C3C6B; color: white; }
     .result { font-weight: bold; color: #0C3C6B; }
-    .note { font-size: 0.9em; color: #666; margin-top: 20px; }
+    .note { font-size: 0.9em; color: #555; margin-top: 15px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Projector Image & Lens Calculator</h1>
 
-    <!-- SCREEN SIZE -->
+    <!-- 1. SCREEN SIZE -->
     <div class="section">
       <h2>1. Screen Size</h2>
       <div>
@@ -50,23 +50,24 @@
       </div>
     </div>
 
-    <!-- PROJECTION & LENS -->
+    <!-- 2. PROJECTION & LENS -->
     <div class="section">
       <h2>2. Projection Distance & Lens Recommendation</h2>
       <div>
         <label>Projection Distance (m):</label>
         <input type="number" id="distance" value="5.0" step="0.1" placeholder="Leave blank to see all lenses">
       </div>
-      <div id="lens-table"></div>
+      <div id="lens-table" style="margin-top:15px;"></div>
     </div>
 
     <div class="note">
-      * Values are approximate (±5%). Always verify with actual projector specifications.<br>
-      * Projection Distance is always in Meters.
+      * All calculations use Meters internally for accuracy.<br>
+      * Results are approximate (±5%). Always verify with official projector specifications.
     </div>
   </div>
 
   <script>
+    // Core variables
     const aspectSelect = document.getElementById('aspect');
     const unitsSelect = document.getElementById('units');
     const widthInput = document.getElementById('width');
@@ -76,8 +77,6 @@
     const unit1 = document.getElementById('unit1');
     const unit2 = document.getElementById('unit2');
     const tableDiv = document.getElementById('lens-table');
-
-    let currentData = []; // Will hold lens data (you can expand this later)
 
     function updateImageSize() {
       let w = parseFloat(widthInput.value) || 3.0;
@@ -93,20 +92,19 @@
       diagonalSpan.textContent = Math.sqrt(w*w + (w*ratio)*(w*ratio)).toFixed(3);
     }
 
-    // Initial run + listeners
+    // Update on any change
     widthInput.addEventListener('input', updateImageSize);
     aspectSelect.addEventListener('change', updateImageSize);
     unitsSelect.addEventListener('change', updateImageSize);
     updateImageSize();
 
-    // Placeholder for full lens table (we can expand this later)
+    // Placeholder Lens Table (we'll expand this with real data next)
     function renderLensTable() {
       tableDiv.innerHTML = `
-        <p><strong>Note:</strong> Full lens recommendation table will be added in the next update.</p>
-        <p>Currently working: Screen Size + Unit Conversion</p>
+        <p><strong>✅ Working:</strong> Screen Size Calculator with unit conversion</p>
+        <p>Next step: Full lens recommendation table + Brightness analysis</p>
       `;
     }
-
     renderLensTable();
   </script>
 </body>
