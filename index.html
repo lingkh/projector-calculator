@@ -69,7 +69,7 @@
     </div>
 
     <div class="note">
-      * Change any of Width / Height / Diagonal — the others will update when you click outside or press Enter.<br>
+      * Change any of Width / Height / Diagonal then press Enter or click outside.<br>
       * Projection Distance is always in Meters.
     </div>
   </div>
@@ -167,7 +167,7 @@
     ];
 
     // Populate Model Dropdown
-    const modelSelect = document.getElementById('model');
+const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
       const opt = document.createElement('option');
@@ -208,29 +208,61 @@
       document.getElementById('diagonal').value = d.toFixed(3);
     }
 
-    function applyUnitConversion() {
-      const isInches = document.getElementById('units').value === "Inches";
-      const conv = isInches ? 39.3701 : 1/39.3701;
+    function renderLensTable() {
+      const selectedModel = modelSelect.value;
+      const dist = parseFloat(document.getElementById('distance').value);
+      const imageW = parseFloat(document.getElementById('width').value) || 3.0;
 
-      let w = parseFloat(document.getElementById('width').value) || 3.0;
-      let h = parseFloat(document.getElementById('height').value) || 1.875;
-      let d = parseFloat(document.getElementById('diagonal').value) || 3.538;
+      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
 
-      document.getElementById('width').value = (w * conv).toFixed(3);
-      document.getElementById('height').value = (h * conv).toFixed(3);
-      document.getElementById('diagonal').value = (d * conv).toFixed(3);
+      const lenses = database.filter(l => l.model === selectedModel);
+
+      let hasPerfect = false;
+
+      lenses.forEach(l => {
+        const minD = (l.trWide * imageW).toFixed(2);
+        const maxD = (l.trTele * imageW).toFixed(2);
+        const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
+
+        if (dist && !isPerfect) return;
+
+        hasPerfect = hasPerfect || isPerfect;
+
+        const status = isPerfect ? "✅ Perfect Fit" : "Available";
+
+        html += `<tr>
+          <td>${l.lens}</td>
+          <td>${l.trWide}</td>
+          <td>${l.trTele}</td>
+          <td>${minD}</td>
+          <td>${maxD}</td>
+          <td class="good">${status}</td>
+        </tr>`;
+      });
+
+      if (dist && !hasPerfect) {
+        html += `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">No perfect fit found for this distance.</td></tr>`;
+      }
+
+      html += `</table>`;
+      document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners
-    document.getElementById('width').addEventListener('blur', () => updateImageSize('width'));
-    document.getElementById('height').addEventListener('blur', () => updateImageSize('height'));
-    document.getElementById('diagonal').addEventListener('blur', () => updateImageSize('diagonal'));
-    document.getElementById('aspect').addEventListener('change', () => updateImageSize('diagonal'));
-    document.getElementById('units').addEventListener('change', () => {
-      applyUnitConversion();
-      renderLensTable();
+    // Event Listeners - Support Enter key + blur
+    ['width', 'height', 'diagonal'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('blur', () => { updateImageSize(id); renderLensTable(); });
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          updateImageSize(id);
+          renderLensTable();
+          el.blur();
+        }
+      });
     });
 
+    document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
+    document.getElementById('units').addEventListener('change', () => { updateImageSize(); renderLensTable(); });
     document.getElementById('distance').addEventListener('input', renderLensTable);
     modelSelect.addEventListener('change', renderLensTable);
 
