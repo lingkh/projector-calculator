@@ -44,9 +44,13 @@
         <label>Image Width:</label>
         <input type="number" id="width" value="3.0" step="0.01">
       </div>
-      <div class="result">
-        <strong>Height:</strong> <span id="height">1.875</span> <span id="unit1">m</span><br>
-        <strong>Diagonal:</strong> <span id="diagonal">3.538</span> <span id="unit2">m</span>
+      <div>
+        <label>Image Height:</label>
+        <input type="number" id="height" value="1.875" step="0.01">
+      </div>
+      <div>
+        <label>Image Diagonal:</label>
+        <input type="number" id="diagonal" value="3.538" step="0.01">
       </div>
     </div>
 
@@ -65,8 +69,8 @@
     </div>
 
     <div class="note">
-      * Projection Distance is always in Meters.<br>
-      * Results are approximate (±5%). Always verify with official specifications.
+      * Change any of Width / Height / Diagonal — the others will update automatically.<br>
+      * Projection Distance is always in Meters.
     </div>
   </div>
 
@@ -162,7 +166,7 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-     // Populate Model Dropdown (unchanged)
+// Populate models
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -172,22 +176,50 @@
       modelSelect.appendChild(opt);
     });
 
-    function updateImageSize() {
+    // ================== IMAGE SIZE LOGIC ==================
+    let lastChanged = 'width';   // Track which field was last edited
+
+    function updateImageSize(changedField) {
+      if (changedField) lastChanged = changedField;
+
       let w = parseFloat(document.getElementById('width').value) || 3.0;
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      let d = parseFloat(document.getElementById('diagonal').value) || 3.538;
       let ratio = 9/16;
+
       switch(document.getElementById('aspect').value) {
         case "16:9": ratio = 9/16; break;
         case "16:10": ratio = 10/16; break;
         case "4:3": ratio = 3/4; break;
       }
-      document.getElementById('height').textContent = (w * ratio).toFixed(3);
-      document.getElementById('diagonal').textContent = Math.sqrt(w*w + (w*ratio)*(w*ratio)).toFixed(3);
+
+      if (lastChanged === 'width') {
+        h = w * ratio;
+        d = Math.sqrt(w*w + h*h);
+      } else if (lastChanged === 'height') {
+        w = h / ratio;
+        d = Math.sqrt(w*w + h*h);
+      } else if (lastChanged === 'diagonal') {
+        w = d / Math.sqrt(1 + ratio*ratio);
+        h = w * ratio;
+      }
+
+      document.getElementById('width').value = w.toFixed(3);
+      document.getElementById('height').value = h.toFixed(3);
+      document.getElementById('diagonal').value = d.toFixed(3);
     }
 
-    // ================== UPDATED LENS TABLE ==================
+    // Event listeners for all three fields
+    document.getElementById('width').addEventListener('input', () => updateImageSize('width'));
+    document.getElementById('height').addEventListener('input', () => updateImageSize('height'));
+    document.getElementById('diagonal').addEventListener('input', () => updateImageSize('diagonal'));
+    document.getElementById('aspect').addEventListener('change', () => updateImageSize('diagonal')); // Keep diagonal when aspect changes
+    document.getElementById('units').addEventListener('change', updateImageSize);
+
+    // ================== LENS TABLE (same as before) ==================
     function renderLensTable() {
       const selectedModel = modelSelect.value;
-      const distInput = parseFloat(document.getElementById('distance').value);
+      const dist = parseFloat(document.getElementById('distance').value);
       const imageW = parseFloat(document.getElementById('width').value) || 3.0;
 
       const lenses = database.filter(l => l.model === selectedModel);
@@ -234,7 +266,7 @@
     modelSelect.addEventListener('change', renderLensTable);
 
     // Initial load
-    updateImageSize();
+    updateImageSize('width');
     renderLensTable();
   </script>
 </body>
