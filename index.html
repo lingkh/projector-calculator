@@ -70,8 +70,7 @@
 
     <div class="note">
       * Change any of Width / Height / Diagonal — the others will update automatically.<br>
-      * Projection Distance is always in Meters.<br>
-      * Results are approximate (±5%).
+      * Projection Distance is always in Meters.
     </div>
   </div>
 
@@ -227,7 +226,7 @@
         const maxD = (l.trTele * imageW).toFixed(2);
         const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
 
-        if (dist && !isPerfect) return;   // Only show perfect fits when distance is entered
+        if (dist && !isPerfect) return;
 
         hasPerfect = hasPerfect || isPerfect;
 
