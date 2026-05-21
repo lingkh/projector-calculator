@@ -69,7 +69,7 @@
     </div>
 
     <div class="note">
-      * Change any of Width / Height / Diagonal then press Enter or click outside.<br>
+      * Change Width/Height/Diagonal then press Enter or click outside.<br>
       * Projection Distance is always in Meters.
     </div>
   </div>
@@ -178,6 +178,11 @@
 
     let lastChanged = 'width';
 
+    function getImageWidthInMeters() {
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      return document.getElementById('units').value === "Inches" ? w / 39.3701 : w;
+    }
+
     function updateImageSize(changedField = null) {
       if (changedField) lastChanged = changedField;
 
@@ -224,7 +229,7 @@
     function renderLensTable() {
       const selectedModel = modelSelect.value;
       const dist = parseFloat(document.getElementById('distance').value);
-      const imageW = parseFloat(document.getElementById('width').value) || 3.0;
+      const imageW = getImageWidthInMeters();   // Always use Meters for calculation
 
       let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
 
