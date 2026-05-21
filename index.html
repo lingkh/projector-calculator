@@ -70,7 +70,8 @@
 
     <div class="note">
       * Change any of Width / Height / Diagonal — the others will update automatically.<br>
-      * Projection Distance is always in Meters.
+      * Projection Distance is always in Meters.<br>
+      * Results are approximate (±5%).
     </div>
   </div>
 
@@ -166,7 +167,7 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-// Populate models
+    // Populate Model Dropdown
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -176,8 +177,8 @@
       modelSelect.appendChild(opt);
     });
 
-    // ================== IMAGE SIZE LOGIC ==================
-    let lastChanged = 'width';   // Track which field was last edited
+    // ================== IMAGE SIZE LOGIC (All 3 fields editable) ==================
+    let lastChanged = 'width';
 
     function updateImageSize(changedField) {
       if (changedField) lastChanged = changedField;
@@ -209,36 +210,28 @@
       document.getElementById('diagonal').value = d.toFixed(3);
     }
 
-    // Event listeners for all three fields
-    document.getElementById('width').addEventListener('input', () => updateImageSize('width'));
-    document.getElementById('height').addEventListener('input', () => updateImageSize('height'));
-    document.getElementById('diagonal').addEventListener('input', () => updateImageSize('diagonal'));
-    document.getElementById('aspect').addEventListener('change', () => updateImageSize('diagonal')); // Keep diagonal when aspect changes
-    document.getElementById('units').addEventListener('change', updateImageSize);
-
-    // ================== LENS TABLE (same as before) ==================
+    // ================== LENS TABLE ==================
     function renderLensTable() {
       const selectedModel = modelSelect.value;
       const dist = parseFloat(document.getElementById('distance').value);
       const imageW = parseFloat(document.getElementById('width').value) || 3.0;
 
-      const lenses = database.filter(l => l.model === selectedModel);
-
       let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
 
-      let hasPerfectFit = false;
+      const lenses = database.filter(l => l.model === selectedModel);
+
+      let hasPerfect = false;
 
       lenses.forEach(l => {
         const minD = (l.trWide * imageW).toFixed(2);
         const maxD = (l.trTele * imageW).toFixed(2);
+        const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
 
-        const isPerfectFit = distInput && distInput >= l.trWide * imageW && distInput <= l.trTele * imageW;
+        if (dist && !isPerfect) return;   // Only show perfect fits when distance is entered
 
-        if (distInput && !isPerfectFit) return;   // <-- Key change: Skip non-perfect fits when distance is entered
+        hasPerfect = hasPerfect || isPerfect;
 
-        hasPerfectFit = hasPerfectFit || isPerfectFit;
-
-        const status = isPerfectFit ? "✅ Perfect Fit" : "Available";
+        const status = isPerfect ? "✅ Perfect Fit" : "Available";
 
         html += `<tr>
           <td>${l.lens}</td>
@@ -250,7 +243,7 @@
         </tr>`;
       });
 
-      if (distInput && !hasPerfectFit) {
+      if (dist && !hasPerfect) {
         html += `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">No perfect fit found for this distance.</td></tr>`;
       }
 
@@ -259,8 +252,10 @@
     }
 
     // Event Listeners
-    document.getElementById('aspect').addEventListener('change', () => { updateImageSize(); renderLensTable(); });
-    document.getElementById('width').addEventListener('input', () => { updateImageSize(); renderLensTable(); });
+    document.getElementById('width').addEventListener('input', () => { updateImageSize('width'); renderLensTable(); });
+    document.getElementById('height').addEventListener('input', () => { updateImageSize('height'); renderLensTable(); });
+    document.getElementById('diagonal').addEventListener('input', () => { updateImageSize('diagonal'); renderLensTable(); });
+    document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
     document.getElementById('units').addEventListener('change', updateImageSize);
     document.getElementById('distance').addEventListener('input', renderLensTable);
     modelSelect.addEventListener('change', renderLensTable);
