@@ -186,12 +186,15 @@
       modelSelect.appendChild(opt);
     });
 
-    // Toggle Dimensions visibility
     function toggleDimensions() {
       const mode = document.getElementById('requirement').value;
       document.getElementById('dimensions-section').style.display = (mode === 'dimensions') ? 'block' : 'none';
     }
-    document.getElementById('requirement').addEventListener('change', toggleDimensions);
+
+    document.getElementById('requirement').addEventListener('change', () => {
+      toggleDimensions();
+      renderLensTable();
+    });
 
     let lastChanged = 'width';
 
@@ -265,8 +268,6 @@
         const maxD = (l.trTele * imageW).toFixed(2);
         const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
 
-        if (dist && !isPerfect) return;
-
         const status = isPerfect ? "✅ Perfect Fit" : "Available";
 
         html += `<tr>
@@ -277,9 +278,8 @@
           <td>${maxD}</td>`;
 
         if (!isDimensionsMode) {
-          // Calculate image size for this lens at fixed distance
           const imgW = (l.trWide * imageW).toFixed(2);
-          const imgH = (imgW * (9/16)).toFixed(2);   // Assume 16:10 for now
+          const imgH = (imgW * (9/16)).toFixed(2);   // Assume 16:10 for calculation
           const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
           html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
         }
@@ -305,17 +305,4 @@
     });
 
     document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
-    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
-    document.getElementById('distance').addEventListener('input', renderLensTable);
-    modelSelect.addEventListener('change', renderLensTable);
-    document.getElementById('requirement').addEventListener('change', () => {
-      toggleDimensions();
-      renderLensTable();
-    });
-
-    // Initial load
-    updateImageSize('width');
-    renderLensTable();
-  </script>
-</body>
-</html>
+    document.getElementById('units').
