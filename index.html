@@ -328,9 +328,9 @@
 
       let verdictText = "";
       let color = "black";
-      if (effective > 200) { verdictText = "Excellent"; color = "green"; }
-      else if (effective > 120) { verdictText = "Good"; color = "green"; }
-      else if (effective > 70) { verdictText = "Acceptable"; color = "orange"; }
+      if (effective > 450) { verdictText = "Excellent"; color = "green"; }
+      else if (effective > 300) { verdictText = "Good"; color = "green"; }
+      else if (effective > 150) { verdictText = "Acceptable"; color = "orange"; }
       else { verdictText = "Too Dim"; color = "red"; }
 
       const verdictEl = document.getElementById('verdict');
