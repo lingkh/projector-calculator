@@ -81,7 +81,7 @@
     </div>
 
     <div class="note">
-      * When "Projection Distance" is selected, all lenses will be shown with calculated image sizes.
+      * When "Projection Distance" is selected, all lenses will be shown with calculated image sizes for that fixed distance.
     </div>
   </div>
 
@@ -177,7 +177,6 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-    // Populate Model Dropdown
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -267,9 +266,8 @@
       lenses.forEach(l => {
         const minD = (l.trWide * imageW).toFixed(2);
         const maxD = (l.trTele * imageW).toFixed(2);
-        const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
 
-        const status = isPerfect ? "✅ Perfect Fit" : "Available";
+        const status = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW ? "✅ Perfect Fit" : "Available";
 
         html += `<tr>
           <td>${l.lens}</td>
@@ -280,7 +278,7 @@
 
         if (!isDimensionsMode) {
           const imgW = (l.trWide * imageW).toFixed(2);
-          const imgH = (imgW * (9/16)).toFixed(2);
+          const imgH = (imgW * (9/16)).toFixed(2);   // Default 16:10 ratio
           const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
           html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
         }
