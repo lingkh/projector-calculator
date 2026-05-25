@@ -18,10 +18,11 @@
     .good { color: green; font-weight: bold; }
     .note { font-size: 0.9em; color: #555; margin-top: 15px; }
 
-    /* Improved Grouping for Projection Distance Mode */
-    .group-wide { background: #1e3a8a !important; color: white; }
+    /* Group Styling */
+    .group-wide { background: #1e40af !important; color: white; }
     .group-tele { background: #4338ca !important; color: white; }
-    .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
+    .subheader-wide { background: #1e40af !important; color: white; font-weight: bold; text-align: center; }
+    .subheader-tele { background: #4338ca !important; color: white; font-weight: bold; text-align: center; }
 
     .brightness-table td { padding: 12px 10px; border-bottom: 1px solid #ddd; }
     .brightness-table .label { font-weight: bold; width: 260px; }
@@ -86,7 +87,7 @@
       </div>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="" step="0.1">
+        <input type="number" id="distance" value="5.0" step="0.1">
       </div>
       <div>
         <label>Screen Gain:</label>
@@ -141,7 +142,7 @@
     </div>
 
     <div class="note">
-      * In Projection Distance mode: Shows image sizes for both Wide (Max) and Tele (Min) zoom.
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
     </div>
   </div>
 
@@ -356,8 +357,8 @@
       html += `<th>Status</th></tr>`;
 
       if (!isDimensionsMode) {
-        html += `<tr><th></th><th></th><th></th><th class="subheader">Width</th><th class="subheader">Height</th><th class="subheader">Diag</th>`;
-        html += `<th class="subheader">Width</th><th class="subheader">Height</th><th class="subheader">Diag</th><th></th><th></th></tr>`;
+        html += `<tr><th></th><th></th><th></th><th class="subheader-wide">Width</th><th class="subheader-wide">Height</th><th class="subheader-wide">Diag</th>`;
+        html += `<th class="subheader-tele">Width</th><th class="subheader-tele">Height</th><th class="subheader-tele">Diag</th><th></th><th></th></tr>`;
       }
 
       const lenses = database.filter(l => l.model === selectedModel);
@@ -367,9 +368,14 @@
 
         if (isDimensionsMode) {
           const imageW = getImageWidthInMeters();
+          const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
+          
+          // Only show perfect fit if distance is entered
+          if (dist && !isPerfect) return;
+
           const minD = (l.trWide * imageW).toFixed(2);
           const maxD = (l.trTele * imageW).toFixed(2);
-          const status = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW ? "✅ Perfect Fit" : "Available";
+          const status = isPerfect ? "✅ Perfect Fit" : "Available";
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
           if (dist > 0) {
@@ -425,7 +431,7 @@
       renderLensTable();
     });
 
-    // Initial load - Default to Dimensions
+    // Initial load
     toggleSections();
     updateImageSize('width');
     renderLensTable();
