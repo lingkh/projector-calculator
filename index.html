@@ -33,13 +33,13 @@
       <div>
         <label>Choose Input Type:</label>
         <select id="requirement" style="width:320px;">
-          <option value="dimensions">Dimensions (Width / Height / Diagonal)</option>
-          <option value="distance" selected>Projection Distance</option>
+          <option value="dimensions" selected>Dimensions (Width / Height / Diagonal)</option>
+          <option value="distance">Projection Distance</option>
         </select>
       </div>
     </div>
 
-    <!-- 1. Screen Size (Dimensions Mode) -->
+    <!-- 1. Screen Size -->
     <div class="section" id="dimensions-section">
       <h2>1. Screen Size</h2>
       <div>
@@ -94,7 +94,7 @@
       <div id="lens-table" style="margin-top:15px;"></div>
     </div>
 
-    <!-- 3. Brightness Analysis (only in Dimensions mode) -->
+    <!-- 3. Brightness Analysis -->
     <div class="section" id="brightness-section">
       <h2>3. Brightness Analysis</h2>
       <table class="brightness-table">
@@ -343,7 +343,9 @@
       if (isDimensionsMode) {
         html += `<th>Min Distance (m)</th><th>Max Distance (m)</th>`;
       } else {
-        html += `<th colspan="3" style="text-align:center">TR Wide (Max Image)</th><th colspan="3" style="text-align:center">TR Tele (Min Image)</th><th>Screen Brightness (Lux)</th>`;
+        html += `<th colspan="3" style="text-align:center;background:#e3f2fd;">TR Wide (Maximum Image Size)</th>`;
+        html += `<th colspan="3" style="text-align:center;background:#f3e5f5;">TR Tele (Minimum Image Size)</th>`;
+        html += `<th>Screen Brightness (Lux)</th>`;
       }
       html += `<th>Status</th></tr>`;
 
@@ -364,12 +366,10 @@
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
           if (dist > 0) {
-            // Wide (Max Image)
             const imgW_wide = (dist / l.trWide).toFixed(2);
             const imgH_wide = (parseFloat(imgW_wide) * aspectRatio).toFixed(2);
             const imgD_wide = Math.sqrt(Math.pow(parseFloat(imgW_wide),2) + Math.pow(parseFloat(imgH_wide),2)).toFixed(2);
 
-            // Tele (Min Image)
             const imgW_tele = (dist / l.trTele).toFixed(2);
             const imgH_tele = (parseFloat(imgW_tele) * aspectRatio).toFixed(2);
             const imgD_tele = Math.sqrt(Math.pow(parseFloat(imgW_tele),2) + Math.pow(parseFloat(imgH_tele),2)).toFixed(2);
@@ -418,7 +418,7 @@
       renderLensTable();
     });
 
-    // Initial load - Default to Projection Distance
+    // Initial load - Default to Dimensions
     toggleSections();
     updateImageSize('width');
     renderLensTable();
