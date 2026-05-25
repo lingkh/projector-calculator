@@ -251,12 +251,13 @@
     function renderLensTable() {
       const selectedModel = modelSelect.value;
       const dist = parseFloat(document.getElementById('distance').value);
-      const imageW = getImageWidthInMeters();
       const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
 
-      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th>`;
+      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th>`;
 
-      if (!isDimensionsMode) {
+      if (isDimensionsMode) {
+        html += `<th>Min Distance (m)</th><th>Max Distance (m)</th>`;
+      } else {
         html += `<th>Image Width (m)</th><th>Image Height (m)</th><th>Image Diagonal (m)</th>`;
       }
       html += `<th>Status</th></tr>`;
@@ -264,23 +265,41 @@
       const lenses = database.filter(l => l.model === selectedModel);
 
       lenses.forEach(l => {
-        const minD = (l.trWide * imageW).toFixed(2);
-        const maxD = (l.trTele * imageW).toFixed(2);
+        let status = "Available";
+        let minD = "", maxD = "";
 
-        const status = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW ? "✅ Perfect Fit" : "Available";
+        if (isDimensionsMode) {
+          const imageW = getImageWidthInMeters();
+          minD = (l.trWide * imageW).toFixed(2);
+          maxD = (l.trTele * imageW).toFixed(2);
+          status = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW ? "✅ Perfect Fit" : "Available";
+        } else {
+          // PROJECTION DISTANCE MODE - FIXED DISTANCE
+          if (dist) {
+            const imgW = (dist / l.trWide).toFixed(2);
+            const ratio = 9/16; // 16:10 default
+            const imgH = (imgW * ratio).toFixed(2);
+            const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
+
+            html += `<tr>
+              <td>${l.lens}</td>
+              <td>${l.trWide}</td>
+              <td>${l.trTele}</td>
+              <td>${imgW}</td>
+              <td>${imgH}</td>
+              <td>${imgD}</td>
+              <td class="good">${status}</td></tr>`;
+            return;
+          }
+        }
 
         html += `<tr>
           <td>${l.lens}</td>
           <td>${l.trWide}</td>
-          <td>${l.trTele}</td>
-          <td>${minD}</td>
-          <td>${maxD}</td>`;
+          <td>${l.trTele}</td>`;
 
-        if (!isDimensionsMode) {
-          const imgW = (l.trWide * imageW).toFixed(2);
-          const imgH = (imgW * (9/16)).toFixed(2);   // Default 16:10 ratio
-          const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
-          html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
+        if (isDimensionsMode) {
+          html += `<td>${minD}</td><td>${maxD}</td>`;
         }
 
         html += `<td class="good">${status}</td></tr>`;
@@ -295,11 +314,7 @@
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); renderLensTable(); });
       el.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          updateImageSize(id);
-          renderLensTable();
-          el.blur();
-        }
+        if (e.key === 'Enter') { updateImageSize(id); renderLensTable(); el.blur(); }
       });
     });
 
