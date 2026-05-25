@@ -34,7 +34,7 @@
       </div>
     </div>
 
-    <!-- 1. SCREEN SIZE (Dimensions Mode) -->
+    <!-- Dimensions Section -->
     <div class="section" id="dimensions-section">
       <h2>1. Screen Size</h2>
       <div>
@@ -66,7 +66,7 @@
       </div>
     </div>
 
-    <!-- 2. PROJECTOR & LENS -->
+    <!-- Projector & Lens -->
     <div class="section">
       <h2>2. Projector & Lens Recommendation</h2>
       <div>
@@ -81,7 +81,7 @@
     </div>
 
     <div class="note">
-      * When "Projection Distance" is selected, the lens table will show all lenses with calculated image sizes.
+      * When "Projection Distance" is selected, all lenses will be shown with calculated image sizes.
     </div>
   </div>
 
@@ -177,7 +177,6 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -187,12 +186,11 @@
       modelSelect.appendChild(opt);
     });
 
-    // Toggle Dimensions Section
+    // Toggle Dimensions visibility
     function toggleDimensions() {
       const mode = document.getElementById('requirement').value;
       document.getElementById('dimensions-section').style.display = (mode === 'dimensions') ? 'block' : 'none';
     }
-
     document.getElementById('requirement').addEventListener('change', toggleDimensions);
 
     let lastChanged = 'width';
@@ -262,16 +260,12 @@
 
       const lenses = database.filter(l => l.model === selectedModel);
 
-      let hasPerfect = false;
-
       lenses.forEach(l => {
         const minD = (l.trWide * imageW).toFixed(2);
         const maxD = (l.trTele * imageW).toFixed(2);
         const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
 
         if (dist && !isPerfect) return;
-
-        hasPerfect = hasPerfect || isPerfect;
 
         const status = isPerfect ? "✅ Perfect Fit" : "Available";
 
@@ -283,18 +277,15 @@
           <td>${maxD}</td>`;
 
         if (!isDimensionsMode) {
-          const imgW = (l.trWide * imageW).toFixed(2);   // For fixed distance mode
-          const imgH = (imgW * (9/16)).toFixed(2);     // Assume 16:10 default
+          // Calculate image size for this lens at fixed distance
+          const imgW = (l.trWide * imageW).toFixed(2);
+          const imgH = (imgW * (9/16)).toFixed(2);   // Assume 16:10 for now
           const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
           html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
         }
 
         html += `<td class="good">${status}</td></tr>`;
       });
-
-      if (dist && !hasPerfect) {
-        html += `<tr><td colspan="8" style="text-align:center; color:red; padding:20px;">No perfect fit found for this distance.</td></tr>`;
-      }
 
       html += `</table>`;
       document.getElementById('lens-table').innerHTML = html;
@@ -317,7 +308,10 @@
     document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
     document.getElementById('distance').addEventListener('input', renderLensTable);
     modelSelect.addEventListener('change', renderLensTable);
-    document.getElementById('requirement').addEventListener('change', renderLensTable);
+    document.getElementById('requirement').addEventListener('change', () => {
+      toggleDimensions();
+      renderLensTable();
+    });
 
     // Initial load
     updateImageSize('width');
