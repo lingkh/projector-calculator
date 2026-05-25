@@ -14,8 +14,14 @@
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background: #0C3C6B; color: white; }
+
     .good { color: green; font-weight: bold; }
     .note { font-size: 0.9em; color: #555; margin-top: 15px; }
+
+    /* Improved Grouping for Projection Distance Mode */
+    .group-wide { background: #1e3a8a !important; color: white; }
+    .group-tele { background: #4338ca !important; color: white; }
+    .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
 
     .brightness-table td { padding: 12px 10px; border-bottom: 1px solid #ddd; }
     .brightness-table .label { font-weight: bold; width: 260px; }
@@ -343,14 +349,15 @@
       if (isDimensionsMode) {
         html += `<th>Min Distance (m)</th><th>Max Distance (m)</th>`;
       } else {
-        html += `<th colspan="3" style="text-align:center;background:#e3f2fd;">TR Wide (Maximum Image Size)</th>`;
-        html += `<th colspan="3" style="text-align:center;background:#f3e5f5;">TR Tele (Minimum Image Size)</th>`;
+        html += `<th colspan="3" class="group-wide" style="text-align:center;">TR Wide (Maximum Image)</th>`;
+        html += `<th colspan="3" class="group-tele" style="text-align:center;">TR Tele (Minimum Image)</th>`;
         html += `<th>Screen Brightness (Lux)</th>`;
       }
       html += `<th>Status</th></tr>`;
 
       if (!isDimensionsMode) {
-        html += `<tr><th></th><th></th><th></th><th>Width</th><th>Height</th><th>Diag</th><th>Width</th><th>Height</th><th>Diag</th><th></th><th></th></tr>`;
+        html += `<tr><th></th><th></th><th></th><th class="subheader">Width</th><th class="subheader">Height</th><th class="subheader">Diag</th>`;
+        html += `<th class="subheader">Width</th><th class="subheader">Height</th><th class="subheader">Diag</th><th></th><th></th></tr>`;
       }
 
       const lenses = database.filter(l => l.model === selectedModel);
