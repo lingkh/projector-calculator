@@ -27,14 +27,14 @@
       <h2>Requirement</h2>
       <div>
         <label>Choose Input Type:</label>
-        <select id="requirement" style="width:300px;">
+        <select id="requirement" style="width:320px;">
           <option value="dimensions">Dimensions (Width / Height / Diagonal)</option>
-          <option value="distance">Projection Distance</option>
+          <option value="distance" selected>Projection Distance</option>
         </select>
       </div>
     </div>
 
-    <!-- 1. SCREEN SIZE / DIMENSIONS -->
+    <!-- 1. SCREEN SIZE (Dimensions Mode) -->
     <div class="section" id="dimensions-section">
       <h2>1. Screen Size</h2>
       <div>
@@ -75,14 +75,13 @@
       </div>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="5.0" step="0.1" placeholder="Leave blank to see all lenses">
+        <input type="number" id="distance" value="5.0" step="0.1">
       </div>
       <div id="lens-table" style="margin-top:15px;"></div>
     </div>
 
     <div class="note">
-      * Change any of Width / Height / Diagonal then press Enter or click outside.<br>
-      * Projection Distance is always in Meters.
+      * When "Projection Distance" is selected, the lens table will show all lenses with calculated image sizes.
     </div>
   </div>
 
@@ -178,7 +177,7 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
-    // Populate Model Dropdown
+
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -187,6 +186,14 @@
       opt.textContent = m;
       modelSelect.appendChild(opt);
     });
+
+    // Toggle Dimensions Section
+    function toggleDimensions() {
+      const mode = document.getElementById('requirement').value;
+      document.getElementById('dimensions-section').style.display = (mode === 'dimensions') ? 'block' : 'none';
+    }
+
+    document.getElementById('requirement').addEventListener('change', toggleDimensions);
 
     let lastChanged = 'width';
 
@@ -241,12 +248,17 @@
     }
 
     function renderLensTable() {
-      // Full lens table logic (same as before)
       const selectedModel = modelSelect.value;
       const dist = parseFloat(document.getElementById('distance').value);
       const imageW = getImageWidthInMeters();
+      const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
 
-      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
+      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th><th>Min Distance (m)</th><th>Max Distance (m)</th>`;
+
+      if (!isDimensionsMode) {
+        html += `<th>Image Width (m)</th><th>Image Height (m)</th><th>Image Diagonal (m)</th>`;
+      }
+      html += `<th>Status</th></tr>`;
 
       const lenses = database.filter(l => l.model === selectedModel);
 
@@ -268,24 +280,25 @@
           <td>${l.trWide}</td>
           <td>${l.trTele}</td>
           <td>${minD}</td>
-          <td>${maxD}</td>
-          <td class="good">${status}</td>
-        </tr>`;
+          <td>${maxD}</td>`;
+
+        if (!isDimensionsMode) {
+          const imgW = (l.trWide * imageW).toFixed(2);   // For fixed distance mode
+          const imgH = (imgW * (9/16)).toFixed(2);     // Assume 16:10 default
+          const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
+          html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
+        }
+
+        html += `<td class="good">${status}</td></tr>`;
       });
 
       if (dist && !hasPerfect) {
-        html += `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">No perfect fit found for this distance.</td></tr>`;
+        html += `<tr><td colspan="8" style="text-align:center; color:red; padding:20px;">No perfect fit found for this distance.</td></tr>`;
       }
 
       html += `</table>`;
       document.getElementById('lens-table').innerHTML = html;
     }
-
-    // Toggle Requirement Mode
-    document.getElementById('requirement').addEventListener('change', function() {
-      const mode = this.value;
-      document.getElementById('dimensions-section').style.display = mode === 'dimensions' ? 'block' : 'none';
-    });
 
     // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
@@ -304,6 +317,7 @@
     document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
     document.getElementById('distance').addEventListener('input', renderLensTable);
     modelSelect.addEventListener('change', renderLensTable);
+    document.getElementById('requirement').addEventListener('change', renderLensTable);
 
     // Initial load
     updateImageSize('width');
