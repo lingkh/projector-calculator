@@ -6,7 +6,7 @@
   <title>Projector Calculator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
-    .container { max-width: 1300px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .container { max-width: 1450px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     h1 { color: #0C3C6B; text-align: center; }
     .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
     label { display: inline-block; width: 190px; font-weight: bold; }
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <!-- Dimensions Section -->
+    <!-- 1. Screen Size (Dimensions Mode) -->
     <div class="section" id="dimensions-section">
       <h2>1. Screen Size</h2>
       <div>
@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <!-- Projector & Lens -->
+    <!-- 2. Projector & Lens -->
     <div class="section">
       <h2>2. Projector & Lens Recommendation</h2>
       <div>
@@ -94,7 +94,7 @@
       <div id="lens-table" style="margin-top:15px;"></div>
     </div>
 
-    <!-- Brightness Analysis (only in Dimensions mode) -->
+    <!-- 3. Brightness Analysis (only in Dimensions mode) -->
     <div class="section" id="brightness-section">
       <h2>3. Brightness Analysis</h2>
       <table class="brightness-table">
@@ -135,7 +135,7 @@
     </div>
 
     <div class="note">
-      * When "Projection Distance" is selected, all lenses will be shown with calculated image sizes and Screen Brightness (Lux).
+      * In Projection Distance mode: Shows image sizes for both Wide (Max) and Tele (Min) zoom.
     </div>
   </div>
 
@@ -343,9 +343,13 @@
       if (isDimensionsMode) {
         html += `<th>Min Distance (m)</th><th>Max Distance (m)</th>`;
       } else {
-        html += `<th>Image Width (m)</th><th>Image Height (m)</th><th>Image Diagonal (m)</th><th>Screen Brightness (Lux)</th>`;
+        html += `<th colspan="3" style="text-align:center">TR Wide (Max Image)</th><th colspan="3" style="text-align:center">TR Tele (Min Image)</th><th>Screen Brightness (Lux)</th>`;
       }
       html += `<th>Status</th></tr>`;
+
+      if (!isDimensionsMode) {
+        html += `<tr><th></th><th></th><th></th><th>Width</th><th>Height</th><th>Diag</th><th>Width</th><th>Height</th><th>Diag</th><th></th><th></th></tr>`;
+      }
 
       const lenses = database.filter(l => l.model === selectedModel);
 
@@ -360,17 +364,24 @@
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
           if (dist > 0) {
-            const imgW = (dist / l.trWide).toFixed(2);
-            const imgH = (parseFloat(imgW) * aspectRatio).toFixed(2);
-            const imgD = Math.sqrt(Math.pow(parseFloat(imgW),2) + Math.pow(parseFloat(imgH),2)).toFixed(2);
-            
-            const area = parseFloat(imgW) * parseFloat(imgH);
+            // Wide (Max Image)
+            const imgW_wide = (dist / l.trWide).toFixed(2);
+            const imgH_wide = (parseFloat(imgW_wide) * aspectRatio).toFixed(2);
+            const imgD_wide = Math.sqrt(Math.pow(parseFloat(imgW_wide),2) + Math.pow(parseFloat(imgH_wide),2)).toFixed(2);
+
+            // Tele (Min Image)
+            const imgW_tele = (dist / l.trTele).toFixed(2);
+            const imgH_tele = (parseFloat(imgW_tele) * aspectRatio).toFixed(2);
+            const imgD_tele = Math.sqrt(Math.pow(parseFloat(imgW_tele),2) + Math.pow(parseFloat(imgH_tele),2)).toFixed(2);
+
+            const area = parseFloat(imgW_wide) * parseFloat(imgH_wide);
             const brightnessLux = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
-            
-            const status = "Available";
-            row += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td><td>${brightnessLux}</td><td class="good">${status}</td>`;
+
+            row += `<td>${imgW_wide}</td><td>${imgH_wide}</td><td>${imgD_wide}</td>`;
+            row += `<td>${imgW_tele}</td><td>${imgH_tele}</td><td>${imgD_tele}</td>`;
+            row += `<td>${brightnessLux}</td><td class="good">Available</td>`;
           } else {
-            row += `<td colspan="5">Enter distance above</td>`;
+            row += `<td colspan="8">Enter distance above</td>`;
           }
         }
         html += row + `</tr>`;
