@@ -177,6 +177,7 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
     ];
 
+    // Populate Model Dropdown
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -279,7 +280,7 @@
 
         if (!isDimensionsMode) {
           const imgW = (l.trWide * imageW).toFixed(2);
-          const imgH = (imgW * (9/16)).toFixed(2);   // Assume 16:10 for calculation
+          const imgH = (imgW * (9/16)).toFixed(2);
           const imgD = Math.sqrt(Math.pow(imgW,2) + Math.pow(imgH,2)).toFixed(2);
           html += `<td>${imgW}</td><td>${imgH}</td><td>${imgD}</td>`;
         }
@@ -305,4 +306,17 @@
     });
 
     document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); renderLensTable(); });
-    document.getElementById('units').
+    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
+    document.getElementById('distance').addEventListener('input', renderLensTable);
+    modelSelect.addEventListener('change', renderLensTable);
+    document.getElementById('requirement').addEventListener('change', () => {
+      toggleDimensions();
+      renderLensTable();
+    });
+
+    // Initial load
+    updateImageSize('width');
+    renderLensTable();
+  </script>
+</body>
+</html>
