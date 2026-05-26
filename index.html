@@ -87,7 +87,7 @@
       </div>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="5.0" step="0.1">
+        <input type="number" id="distance" value="" step="0.1" placeholder="Leave blank to see all lenses">
       </div>
       <div>
         <label>Screen Gain:</label>
@@ -386,7 +386,7 @@
               const area = parseFloat(w) * parseFloat(h);
               brightW = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              wideW = wideH = wideD = `<span class="warning">Min=${l.distMinWide}<br>Max=${l.distMaxWide}</span>`;
+              wideW = wideH = wideD = `<span class="warning">MinDist=${l.distMinWide}<br>MaxDist=${l.distMaxWide}</span>`;
               brightW = `<span class="warning">Out of Range</span>`;
             }
 
