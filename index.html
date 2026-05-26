@@ -143,13 +143,12 @@
     </div>
 
     <div class="note">
-      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.<br>
-      * In Projection Distance mode: Range check applied for Wide and Tele.
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
     </div>
   </div>
 
   <script>
-    // ================== FULL EXPANDED DATABASE ==================
+    // ================== FULL DATABASE ==================
     const database = [
       {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000, distMinWide:0.85, distMaxWide:8.82, distMinTele:1.04, distMaxTele:10.65},
       {model:"XP-P621U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:6200, distMinWide:0.68, distMaxWide:7.06, distMinTele:1.12, distMaxTele:11.47},
@@ -350,17 +349,16 @@
       let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th>`;
 
       if (isDimensionsMode) {
-        html += `<th>Min Distance (m)</th><th>Max Distance (m)</th>`;
+        html += `<th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
       } else {
         html += `<th colspan="3" class="group-wide" style="text-align:center;">TR Wide (Maximum Image)</th>`;
         html += `<th colspan="3" class="group-tele" style="text-align:center;">TR Tele (Minimum Image)</th>`;
-        html += `<th>Screen Brightness (Lux)</th>`;
+        html += `<th>Brightness Wide (Lux)</th><th>Brightness Tele (Lux)</th></tr>`;
       }
-      html += `<th>Status</th></tr>`;
 
       if (!isDimensionsMode) {
         html += `<tr><th></th><th></th><th></th><th class="subheader-wide">Width</th><th class="subheader-wide">Height</th><th class="subheader-wide">Diag</th>`;
-        html += `<th class="subheader-tele">Width</th><th class="subheader-tele">Height</th><th class="subheader-tele">Diag</th><th></th><th></th></tr>`;
+        html += `<th class="subheader-tele">Width</th><th class="subheader-tele">Height</th><th class="subheader-tele">Diag</th><th class="subheader-wide"></th><th class="subheader-tele"></th></tr>`;
       }
 
       const lenses = database.filter(l => l.model === selectedModel);
@@ -379,32 +377,37 @@
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
           if (dist > 0) {
-            // Wide Group
+            // Wide
             let wideContent = "";
+            let brightWide = "";
             if (dist >= l.distMinWide && dist <= l.distMaxWide) {
               const imgW_wide = (dist / l.trWide).toFixed(2);
               const imgH_wide = (parseFloat(imgW_wide) * aspectRatio).toFixed(2);
               const imgD_wide = Math.sqrt(Math.pow(parseFloat(imgW_wide),2) + Math.pow(parseFloat(imgH_wide),2)).toFixed(2);
               wideContent = `${imgW_wide}</td><td>${imgH_wide}</td><td>${imgD_wide}`;
+              const areaWide = parseFloat(imgW_wide) * parseFloat(imgH_wide);
+              brightWide = areaWide > 0 ? (l.lumens * gain / areaWide).toFixed(0) : "—";
             } else {
               wideContent = `<span class="warning">Min=${l.distMinWide} Max=${l.distMaxWide}</span></td><td></td><td>`;
+              brightWide = `<span class="warning">Out of Range</span>`;
             }
 
-            // Tele Group
+            // Tele
             let teleContent = "";
+            let brightTele = "";
             if (dist >= l.distMinTele && dist <= l.distMaxTele) {
               const imgW_tele = (dist / l.trTele).toFixed(2);
               const imgH_tele = (parseFloat(imgW_tele) * aspectRatio).toFixed(2);
               const imgD_tele = Math.sqrt(Math.pow(parseFloat(imgW_tele),2) + Math.pow(parseFloat(imgH_tele),2)).toFixed(2);
               teleContent = `${imgW_tele}</td><td>${imgH_tele}</td><td>${imgD_tele}`;
+              const areaTele = parseFloat(imgW_tele) * parseFloat(imgH_tele);
+              brightTele = areaTele > 0 ? (l.lumens * gain / areaTele).toFixed(0) : "—";
             } else {
               teleContent = `<span class="warning">Min=${l.distMinTele} Max=${l.distMaxTele}</span></td><td></td><td>`;
+              brightTele = `<span class="warning">Out of Range</span>`;
             }
 
-            const area = (dist / l.trWide) * (dist / l.trWide * aspectRatio);
-            const brightnessLux = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
-
-            row += `<td>${wideContent}</td><td>${teleContent}</td><td>${brightnessLux}</td><td class="good">Available</td>`;
+            row += `<td>${wideContent}</td><td>${teleContent}</td><td>${brightWide}</td><td>${brightTele}</td>`;
           } else {
             row += `<td colspan="8">Enter distance above</td>`;
           }
