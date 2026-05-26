@@ -6,7 +6,7 @@
   <title>Projector Calculator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
-    .container { max-width: 1450px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .container { max-width: 1480px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     h1 { color: #0C3C6B; text-align: center; }
     .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
     label { display: inline-block; width: 190px; font-weight: bold; }
@@ -16,6 +16,7 @@
     th { background: #0C3C6B; color: white; }
 
     .good { color: green; font-weight: bold; }
+    .warning { color: red; font-weight: bold; }
     .note { font-size: 0.9em; color: #555; margin-top: 15px; }
 
     /* Group Styling */
@@ -87,7 +88,7 @@
       </div>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="" step="0.1" placeholder="Leave blank to see all lenses">
+        <input type="number" id="distance" value="5.0" step="0.1">
       </div>
       <div>
         <label>Screen Gain:</label>
@@ -142,100 +143,101 @@
     </div>
 
     <div class="note">
-      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.<br>
+      * In Projection Distance mode: Range check applied for Wide and Tele.
     </div>
   </div>
 
   <script>
-    // ================== FULL DATABASE ==================
+    // ================== FULL EXPANDED DATABASE ==================
     const database = [
-      {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000},
-      {model:"XP-P621U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:6200},
-      {model:"XP-P701U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:7000},
-      {model:"XP-P601Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:6000},
-      {model:"XP-P721Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:7200},
-      {model:"XP-V731U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300},
-      {model:"XP-V731U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300},
-      {model:"XP-V731U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300},
-      {model:"XP-V731U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300},
-      {model:"XP-V731U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300},
-      {model:"XP-V731U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300},
-      {model:"XP-V731U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300},
-      {model:"XP-V731U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300},
-      {model:"XP-V731U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300},
-      {model:"XP-V731U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300},
-      {model:"XP-V801U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000},
-      {model:"XP-V801U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000},
-      {model:"XP-V801U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000},
-      {model:"XP-V801U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000},
-      {model:"XP-V801U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000},
-      {model:"XP-V801U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000},
-      {model:"XP-V801U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000},
-      {model:"XP-V801U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000},
-      {model:"XP-V801U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000},
-      {model:"XP-V801U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000},
-      {model:"XP-A824U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200},
-      {model:"XP-A824U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200},
-      {model:"XP-A824U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200},
-      {model:"XP-A824U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200},
-      {model:"XP-A824U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200},
-      {model:"XP-A824U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200},
-      {model:"XP-A824U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200},
-      {model:"XP-A824U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200},
-      {model:"XP-A824U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200},
-      {model:"XP-A824U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200},
-      {model:"XP-A104U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000},
-      {model:"XP-A104U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000},
-      {model:"XP-A104U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000},
-      {model:"XP-A104U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000},
-      {model:"XP-A104U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000},
-      {model:"XP-A104U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000},
-      {model:"XP-A104U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000},
-      {model:"XP-A104U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000},
-      {model:"XP-A104U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000},
-      {model:"XP-A104U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000},
-      {model:"XP-A155U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000},
-      {model:"XP-A155U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000},
-      {model:"XP-A155U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000},
-      {model:"XP-A155U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000},
-      {model:"XP-A155U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000},
-      {model:"XP-A155U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000},
-      {model:"XP-A155U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000},
-      {model:"XP-A175U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000},
-      {model:"XP-A175U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000},
-      {model:"XP-A175U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000},
-      {model:"XP-A175U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000},
-      {model:"XP-A175U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000},
-      {model:"XP-A175U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000},
-      {model:"XP-A175U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000},
-      {model:"XP-X141Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:13500},
-      {model:"XP-X141Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:13500},
-      {model:"XP-X141Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:13500},
-      {model:"XP-X141Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:13500},
-      {model:"XP-X141Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:13500},
-      {model:"XP-X141Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:13500},
-      {model:"XP-X171Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:16500},
-      {model:"XP-X171Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:16500},
-      {model:"XP-X171Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:16500},
-      {model:"XP-X171Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:16500},
-      {model:"XP-X171Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:16500},
-      {model:"XP-X171Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:16500},
-      {model:"XP-A201U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:20000},
-      {model:"XP-A201U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:20000},
-      {model:"XP-A201U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:20000},
-      {model:"XP-A201U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:20000},
-      {model:"XP-A201U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:20000},
-      {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000}
+      {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000, distMinWide:0.85, distMaxWide:8.82, distMinTele:1.04, distMaxTele:10.65},
+      {model:"XP-P621U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:6200, distMinWide:0.68, distMaxWide:7.06, distMinTele:1.12, distMaxTele:11.47},
+      {model:"XP-P701U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:7000, distMinWide:0.68, distMaxWide:7.06, distMinTele:1.12, distMaxTele:11.47},
+      {model:"XP-P601Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:6000, distMinWide:1.64, distMaxWide:8.4, distMinTele:2.66, distMaxTele:13.37},
+      {model:"XP-P721Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:7200, distMinWide:1.64, distMaxWide:8.4, distMinTele:2.66, distMaxTele:13.37},
+      {model:"XP-V731U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V731U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V731U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V731U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V731U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V731U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V731U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V731U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V731U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V731U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V801U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V801U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V801U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V801U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V801U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V801U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V801U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V801U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A824U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A824U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A824U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A824U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A824U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A824U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A824U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A824U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A104U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A104U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A104U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A104U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A104U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A104U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A104U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A104U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A104U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A104U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A155U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A155U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A155U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A155U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A155U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A155U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A155U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A155U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A155U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A155U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A155U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A155U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A175U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A175U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A175U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A175U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A175U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A175U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A175U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A175U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A175U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A175U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A175U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A175U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-X141Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:13500, distMinWide:0.39, distMaxWide:2.79, distMinTele:0.41, distMaxTele:3.01},
+      {model:"XP-X141Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:13500, distMinWide:0.7, distMaxWide:4.78, distMinTele:0.97, distMaxTele:6.59},
+      {model:"XP-X141Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:13500, distMinWide:0.75, distMaxWide:8.31, distMinTele:1.14, distMaxTele:12.22},
+      {model:"XP-X141Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:13500, distMinWide:1.07, distMaxWide:14, distMinTele:1.49, distMaxTele:18.95},
+      {model:"XP-X141Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:13500, distMinWide:1.47, distMaxWide:18.51, distMinTele:2.25, distMaxTele:27.86},
+      {model:"XP-X141Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:13500, distMinWide:2.25, distMaxWide:27.33, distMinTele:4.3, distMaxTele:54.19},
+      {model:"XP-X171Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:16500, distMinWide:0.39, distMaxWide:2.79, distMinTele:0.41, distMaxTele:3.01},
+      {model:"XP-X171Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:16500, distMinWide:0.7, distMaxWide:4.78, distMinTele:0.97, distMaxTele:6.59},
+      {model:"XP-X171Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:16500, distMinWide:0.75, distMaxWide:8.31, distMinTele:1.14, distMaxTele:12.22},
+      {model:"XP-X171Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:16500, distMinWide:1.07, distMaxWide:14, distMinTele:1.49, distMaxTele:18.95},
+      {model:"XP-X171Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:16500, distMinWide:1.47, distMaxWide:18.51, distMinTele:2.25, distMaxTele:27.86},
+      {model:"XP-X171Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:16500, distMinWide:2.25, distMaxWide:27.33, distMinTele:4.3, distMaxTele:54.19},
+      {model:"XP-A201U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:20000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A201U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:20000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A201U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:20000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A201U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:20000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A201U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:20000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81}
     ];
 
     const modelSelect = document.getElementById('model');
@@ -328,9 +330,9 @@
 
       let verdictText = "";
       let color = "black";
-      if (effective > 450) { verdictText = "Excellent"; color = "green"; }
-      else if (effective > 300) { verdictText = "Good"; color = "green"; }
-      else if (effective > 150) { verdictText = "Acceptable"; color = "orange"; }
+      if (effective > 200) { verdictText = "Excellent"; color = "green"; }
+      else if (effective > 120) { verdictText = "Good"; color = "green"; }
+      else if (effective > 70) { verdictText = "Acceptable"; color = "orange"; }
       else { verdictText = "Too Dim"; color = "red"; }
 
       const verdictEl = document.getElementById('verdict');
@@ -369,8 +371,6 @@
         if (isDimensionsMode) {
           const imageW = getImageWidthInMeters();
           const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
-          
-          // Only show perfect fit if distance is entered
           if (dist && !isPerfect) return;
 
           const minD = (l.trWide * imageW).toFixed(2);
@@ -379,20 +379,32 @@
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
           if (dist > 0) {
-            const imgW_wide = (dist / l.trWide).toFixed(2);
-            const imgH_wide = (parseFloat(imgW_wide) * aspectRatio).toFixed(2);
-            const imgD_wide = Math.sqrt(Math.pow(parseFloat(imgW_wide),2) + Math.pow(parseFloat(imgH_wide),2)).toFixed(2);
+            // Wide Group
+            let wideContent = "";
+            if (dist >= l.distMinWide && dist <= l.distMaxWide) {
+              const imgW_wide = (dist / l.trWide).toFixed(2);
+              const imgH_wide = (parseFloat(imgW_wide) * aspectRatio).toFixed(2);
+              const imgD_wide = Math.sqrt(Math.pow(parseFloat(imgW_wide),2) + Math.pow(parseFloat(imgH_wide),2)).toFixed(2);
+              wideContent = `${imgW_wide}</td><td>${imgH_wide}</td><td>${imgD_wide}`;
+            } else {
+              wideContent = `<span class="warning">Min=${l.distMinWide} Max=${l.distMaxWide}</span></td><td></td><td>`;
+            }
 
-            const imgW_tele = (dist / l.trTele).toFixed(2);
-            const imgH_tele = (parseFloat(imgW_tele) * aspectRatio).toFixed(2);
-            const imgD_tele = Math.sqrt(Math.pow(parseFloat(imgW_tele),2) + Math.pow(parseFloat(imgH_tele),2)).toFixed(2);
+            // Tele Group
+            let teleContent = "";
+            if (dist >= l.distMinTele && dist <= l.distMaxTele) {
+              const imgW_tele = (dist / l.trTele).toFixed(2);
+              const imgH_tele = (parseFloat(imgW_tele) * aspectRatio).toFixed(2);
+              const imgD_tele = Math.sqrt(Math.pow(parseFloat(imgW_tele),2) + Math.pow(parseFloat(imgH_tele),2)).toFixed(2);
+              teleContent = `${imgW_tele}</td><td>${imgH_tele}</td><td>${imgD_tele}`;
+            } else {
+              teleContent = `<span class="warning">Min=${l.distMinTele} Max=${l.distMaxTele}</span></td><td></td><td>`;
+            }
 
-            const area = parseFloat(imgW_wide) * parseFloat(imgH_wide);
+            const area = (dist / l.trWide) * (dist / l.trWide * aspectRatio);
             const brightnessLux = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
 
-            row += `<td>${imgW_wide}</td><td>${imgH_wide}</td><td>${imgD_wide}</td>`;
-            row += `<td>${imgW_tele}</td><td>${imgH_tele}</td><td>${imgD_tele}</td>`;
-            row += `<td>${brightnessLux}</td><td class="good">Available</td>`;
+            row += `<td>${wideContent}</td><td>${teleContent}</td><td>${brightnessLux}</td><td class="good">Available</td>`;
           } else {
             row += `<td colspan="8">Enter distance above</td>`;
           }
