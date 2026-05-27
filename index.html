@@ -141,7 +141,7 @@
     </div>
 
     <div class="note">
-      * Special offset (0.6136m) applied for NP44ML+XP01LK / NP44ML+XP02LK lenses.
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
     </div>
   </div>
 
@@ -355,7 +355,11 @@
       let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th>`;
 
       if (isDimensionsMode) {
-        html += `<th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
+        if (distL1) {
+          html += `<th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
+        } else {
+          html += `<th>Min Distance (m)</th><th>Max Distance (m)</th></tr>`;
+        }
       } else {
         html += `<th colspan="4" class="group-wide" style="text-align:center;">TR Wide (Maximum Image)</th>`;
         html += `<th colspan="4" class="group-tele" style="text-align:center;">TR Tele (Minimum Image)</th></tr>`;
@@ -374,7 +378,9 @@
         if (isDimensionsMode) {
           const isSpecial = (l.lens === "NP44ML+XP01LK" || l.lens === "NP44ML+XP02LK");
 
-          let minD_L1, maxD_L1, status = "Available";
+          let minD_L1 = (l.trWide * imageW).toFixed(2);
+          let maxD_L1 = (l.trTele * imageW).toFixed(2);
+          let status = "Available";
 
           if (distL1) {
             const distL2 = getAdjustedDistance(distL1, l.lens, true);
@@ -385,18 +391,22 @@
             maxD_L1 = isSpecial ? (maxD_L2 - 0.6136).toFixed(2) : maxD_L2.toFixed(2);
 
             const isPerfect = distL1 >= parseFloat(minD_L1) && distL1 <= parseFloat(maxD_L1);
-            status = isPerfect ? "✅ Perfect Fit" : "Available";
+            if (!isPerfect) return;   // Only show perfect fit when distance is entered
+
+            status = "✅ Perfect Fit";
           } else {
-            // No distance entered
-            const minD_L2 = l.trWide * imageW;
-            const maxD_L2 = l.trTele * imageW;
-            minD_L1 = isSpecial ? (minD_L2 - 0.6136).toFixed(2) : minD_L2.toFixed(2);
-            maxD_L1 = isSpecial ? (maxD_L2 - 0.6136).toFixed(2) : maxD_L2.toFixed(2);
+            // No distance - show all lenses with adjusted Min/Max for special lenses
+            if (isSpecial) {
+              minD_L1 = (l.trWide * imageW - 0.6136).toFixed(2);
+              maxD_L1 = (l.trTele * imageW - 0.6136).toFixed(2);
+            }
           }
 
-          row += `<td>${minD_L1}</td><td>${maxD_L1}</td><td class="good">${status}</td>`;
+          row += `<td>${minD_L1}</td><td>${maxD_L1}</td>`;
+          if (distL1) row += `<td class="good">${status}</td>`;
+          row += `</tr>`;
         } else {
-          // Projection Distance mode (previous logic)
+          // Projection Distance mode (unchanged)
           if (distL1 > 0) {
             const distL2_wide = getAdjustedDistance(distL1, l.lens, true);
             let wideW = "", wideH = "", wideD = "", brightW = "";
