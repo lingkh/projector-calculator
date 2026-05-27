@@ -23,25 +23,33 @@
     .group-tele { background: #4338ca !important; color: white; }
     .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
 
-    /* Brightness Analysis Table Styling */
+    /* Improved Brightness Analysis Table */
+    .brightness-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
     .brightness-table td { 
-      padding: 12px 15px; 
-      border-bottom: 1px solid #ddd; 
+      padding: 14px 20px; 
+      border-bottom: 1px solid #eee; 
     }
     .brightness-table .label { 
       font-weight: bold; 
-      width: 260px; 
-      text-align: left !important;   /* Left aligned labels */
+      text-align: left; 
+      width: 280px;
+      padding-left: 10px;
     }
     .brightness-table .value { 
       text-align: right; 
       font-weight: bold; 
       color: #0C3C6B; 
+      width: 220px;
+      padding-right: 30px;
     }
     .brightness-table select,
     .brightness-table input {
-      width: 180px;
-      text-align: right;   /* Right align editable fields */
+      width: 160px;
+      text-align: right;
+      padding: 8px 12px;
     }
     .highlight { background: #e8f5e9 !important; }
   </style>
@@ -136,7 +144,7 @@
         </tr>
         <tr>
           <td class="label">Ambient Light (Lux)</td>
-          <td class="value"><input type="number" id="ambient" value="50" step="10" style="width:140px;"></td>
+          <td class="value"><input type="number" id="ambient" value="50" step="10"></td>
         </tr>
         <tr>
           <td class="label">Screen Area (m²)</td>
@@ -163,7 +171,7 @@
   </div>
 
   <script>
-    // ================== FULL DATABASE (same as before) ==================
+    // ================== FULL DATABASE ==================
     const database = [ /* ... same full database as previous version ... */ 
       // (Keeping the exact same database from your last working version)
       {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000, distMinWide:0.85, distMaxWide:8.82, distMinTele:1.04, distMaxTele:10.65},
@@ -369,6 +377,7 @@
     }
 
     function renderLensTable() {
+      // (Same as previous version - unchanged)
       const selectedModel = modelSelect.value;
       const distL1 = parseFloat(document.getElementById('distance').value);
       const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
@@ -498,10 +507,20 @@
       renderLensTable();
     });
 
-    // Initial load
-    toggleSections();
-    updateImageSize('width');
-    renderLensTable();
+    // Initial load - Fixed lumens display
+    window.onload = function() {
+      toggleSections();
+      updateImageSize('width');
+      
+      // Set initial model and lumens
+      if (uniqueModels.length > 0) {
+        modelSelect.value = uniqueModels[0]; // or your preferred default model
+        const proj = database.find(l => l.model === modelSelect.value);
+        if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
+      }
+      
+      renderLensTable();
+    };
   </script>
 </body>
 </html>
