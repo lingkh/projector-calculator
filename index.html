@@ -19,7 +19,6 @@
     .warning { color: red; font-weight: bold; }
     .note { font-size: 0.9em; color: #555; margin-top: 15px; }
 
-    /* Group Styling */
     .group-wide { background: #1e40af !important; color: white; }
     .group-tele { background: #4338ca !important; color: white; }
     .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
@@ -87,7 +86,7 @@
       </div>
       <div>
         <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="" step="0.1" placeholder="Leave blank to see all lenses">
+        <input type="number" id="distance" value="5.0" step="0.1">
       </div>
       <div>
         <label>Screen Gain:</label>
@@ -142,7 +141,7 @@
     </div>
 
     <div class="note">
-      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
+      * Special handling for NP44ML+XP02LK / NP44ML+XP01LK lenses (offset 0.6136m).
     </div>
   </div>
 
@@ -274,6 +273,13 @@
       return document.getElementById('units').value === "Inches" ? w / 39.3701 : w;
     }
 
+    function getAdjustedDistance(dist, lensName, isAddOffset) {
+      if (!dist) return 0;
+      const offset = 0.6136;
+      const isSpecialLens = lensName === "NP44ML+XP02LK" || lensName === "NP44ML+XP01LK";
+      return isSpecialLens ? (isAddOffset ? dist + offset : dist - offset) : dist;
+    }
+
     function updateImageSize(changedField = null) {
       if (changedField) lastChanged = changedField;
       let w = parseFloat(document.getElementById('width').value) || 3.0;
@@ -340,7 +346,7 @@
 
     function renderLensTable() {
       const selectedModel = modelSelect.value;
-      const dist = parseFloat(document.getElementById('distance').value);
+      const distL1 = parseFloat(document.getElementById('distance').value);
       const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
       const aspectRatio = getAspectRatio();
       const gain = parseFloat(document.getElementById('gain').value) || 1.0;
@@ -367,33 +373,35 @@
 
         if (isDimensionsMode) {
           const imageW = getImageWidthInMeters();
-          const isPerfect = dist && dist >= l.trWide*imageW && dist <= l.trTele*imageW;
-          if (dist && !isPerfect) return;
+          const isPerfect = distL1 && distL1 >= l.trWide*imageW && distL1 <= l.trTele*imageW;
+          if (distL1 && !isPerfect) return;
 
           const minD = (l.trWide * imageW).toFixed(2);
           const maxD = (l.trTele * imageW).toFixed(2);
           const status = isPerfect ? "✅ Perfect Fit" : "Available";
           row += `<td>${minD}</td><td>${maxD}</td><td class="good">${status}</td>`;
         } else {
-          if (dist > 0) {
-            // Wide Group
+          if (distL1 > 0) {
+            // Wide
+            const distL2_wide = getAdjustedDistance(distL1, l.lens, true);
             let wideW = "", wideH = "", wideD = "", brightW = "";
-            if (dist >= l.distMinWide && dist <= l.distMaxWide) {
-              const w = (dist / l.trWide).toFixed(2);
+            if (distL2_wide >= l.distMinWide && distL2_wide <= l.distMaxWide) {
+              const w = (distL2_wide / l.trWide).toFixed(2);
               const h = (parseFloat(w) * aspectRatio).toFixed(2);
               const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
               wideW = w; wideH = h; wideD = d;
               const area = parseFloat(w) * parseFloat(h);
               brightW = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              wideW = wideH = wideD = `<span class="warning">MinDist=${l.distMinWide}<br>MaxDist=${l.distMaxWide}</span>`;
+              wideW = wideH = wideD = `<span class="warning">Min=${l.distMinWide}<br>Max=${l.distMaxWide}</span>`;
               brightW = `<span class="warning">Out of Range</span>`;
             }
 
-            // Tele Group
+            // Tele
+            const distL2_tele = getAdjustedDistance(distL1, l.lens, true);
             let teleW = "", teleH = "", teleD = "", brightT = "";
-            if (dist >= l.distMinTele && dist <= l.distMaxTele) {
-              const w = (dist / l.trTele).toFixed(2);
+            if (distL2_tele >= l.distMinTele && distL2_tele <= l.distMaxTele) {
+              const w = (distL2_tele / l.trTele).toFixed(2);
               const h = (parseFloat(w) * aspectRatio).toFixed(2);
               const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
               teleW = w; teleH = h; teleD = d;
@@ -417,7 +425,7 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners
+    // Event Listeners (same as before)
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); });
