@@ -366,9 +366,9 @@
 
       let verdictText = "";
       let color = "black";
-      if (effective > 200) { verdictText = "Excellent"; color = "green"; }
-      else if (effective > 120) { verdictText = "Good"; color = "green"; }
-      else if (effective > 70) { verdictText = "Acceptable"; color = "orange"; }
+      if (effective > 449) { verdictText = "Excellent"; color = "green"; }
+      else if (effective > 299) { verdictText = "Good"; color = "green"; }
+      else if (effective > 149) { verdictText = "Acceptable"; color = "orange"; }
       else { verdictText = "Too Dim"; color = "red"; }
 
       const verdictEl = document.getElementById('verdict');
@@ -448,7 +448,7 @@
               const area = parseFloat(w) * parseFloat(h);
               brightW = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              wideW = wideH = wideD = `<span class="warning">Min=${l.distMinWide}<br>Max=${l.distMaxWide}</span>`;
+              wideW = wideH = wideD = `<span class="warning">MinDist=${l.distMinWide}<br>MaxDist=${l.distMaxWide}</span>`;
               brightW = `<span class="warning">Out of Range</span>`;
             }
 
@@ -462,7 +462,7 @@
               const area = parseFloat(w) * parseFloat(h);
               brightT = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              teleW = teleH = teleD = `<span class="warning">Min=${l.distMinTele}<br>Max=${l.distMaxTele}</span>`;
+              teleW = teleH = teleD = `<span class="warning">MinDist=${l.distMinTele}<br>MaxDist=${l.distMaxTele}</span>`;
               brightT = `<span class="warning">Out of Range</span>`;
             }
 
