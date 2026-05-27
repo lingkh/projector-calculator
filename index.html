@@ -23,7 +23,6 @@
     .group-tele { background: #4338ca !important; color: white; }
     .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
 
-    /* Improved Brightness Analysis Table */
     .brightness-table {
       width: 100%;
       border-collapse: collapse;
@@ -160,7 +159,7 @@
         </tr>
         <tr>
           <td class="label"><strong>Image Quality Verdict</strong></td>
-          <td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:1px;"></span></td>
+          <td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td>
         </tr>
       </table>
     </div>
@@ -262,6 +261,7 @@
       {model:"XP-A201U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:20000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81}
     ];
+
 
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
@@ -377,7 +377,6 @@
     }
 
     function renderLensTable() {
-      // (Same as previous version - unchanged)
       const selectedModel = modelSelect.value;
       const distL1 = parseFloat(document.getElementById('distance').value);
       const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
@@ -480,7 +479,7 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners
+    // Event Listeners (unchanged)
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); });
@@ -507,19 +506,19 @@
       renderLensTable();
     });
 
-    // Initial load - Fixed lumens display
+    // Initial load
     window.onload = function() {
       toggleSections();
       updateImageSize('width');
       
-      // Set initial model and lumens
       if (uniqueModels.length > 0) {
-        modelSelect.value = uniqueModels[0]; // or your preferred default model
+        modelSelect.value = uniqueModels[0];
         const proj = database.find(l => l.model === modelSelect.value);
         if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
       }
       
       renderLensTable();
+      updateBrightness();   // <-- Added to show Illuminance on refresh
     };
   </script>
 </body>
