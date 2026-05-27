@@ -23,9 +23,26 @@
     .group-tele { background: #4338ca !important; color: white; }
     .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
 
-    .brightness-table td { padding: 12px 10px; border-bottom: 1px solid #ddd; }
-    .brightness-table .label { font-weight: bold; width: 260px; }
-    .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; }
+    /* Brightness Analysis Table Styling */
+    .brightness-table td { 
+      padding: 12px 15px; 
+      border-bottom: 1px solid #ddd; 
+    }
+    .brightness-table .label { 
+      font-weight: bold; 
+      width: 260px; 
+      text-align: left !important;   /* Left aligned labels */
+    }
+    .brightness-table .value { 
+      text-align: right; 
+      font-weight: bold; 
+      color: #0C3C6B; 
+    }
+    .brightness-table select,
+    .brightness-table input {
+      width: 180px;
+      text-align: right;   /* Right align editable fields */
+    }
     .highlight { background: #e8f5e9 !important; }
   </style>
 </head>
@@ -110,7 +127,7 @@
         </tr>
         <tr>
           <td class="label">Screen Gain</td>
-          <td><select id="gain-brightness">
+          <td class="value"><select id="gain-brightness">
             <option value="1.0" selected>1.0</option>
             <option value="1.1">1.1</option>
             <option value="1.3">1.3</option>
@@ -119,7 +136,7 @@
         </tr>
         <tr>
           <td class="label">Ambient Light (Lux)</td>
-          <td><input type="number" id="ambient" value="50" step="10" style="width:140px;"></td>
+          <td class="value"><input type="number" id="ambient" value="50" step="10" style="width:140px;"></td>
         </tr>
         <tr>
           <td class="label">Screen Area (m²)</td>
@@ -135,7 +152,7 @@
         </tr>
         <tr>
           <td class="label"><strong>Image Quality Verdict</strong></td>
-          <td><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td>
+          <td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td>
         </tr>
       </table>
     </div>
@@ -146,7 +163,7 @@
   </div>
 
   <script>
-    // ================== FULL DATABASE ==================
+    // ================== FULL DATABASE (same as before) ==================
     const database = [ /* ... same full database as previous version ... */ 
       // (Keeping the exact same database from your last working version)
       {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000, distMinWide:0.85, distMaxWide:8.82, distMinTele:1.04, distMaxTele:10.65},
@@ -329,7 +346,7 @@
       const ambient = parseFloat(document.getElementById('ambient').value) || 0;
       
       const widthM = getImageWidthInMeters();
-      const heightM = getImageHeightInMeters();   // <-- Fixed here
+      const heightM = getImageHeightInMeters();
       const area = widthM * heightM;
 
       const illuminance = area > 0 ? (lumens * gain / area) : 0;
@@ -454,7 +471,7 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners (unchanged)
+    // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); });
