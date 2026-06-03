@@ -6,7 +6,7 @@
   <title>Projector Calculator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
-    .container { max-width: 1550px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .container { max-width: 1600px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     h1 { color: #0C3C6B; text-align: center; }
     .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
     label { display: inline-block; width: 190px; font-weight: bold; }
@@ -21,35 +21,11 @@
 
     .group-wide { background: #1e40af !important; color: white; }
     .group-tele { background: #4338ca !important; color: white; }
-    .subheader { background: #e0f2fe !important; font-weight: bold; text-align: center; }
+    .subheader { background: #e0f2fe !important; font-weight: bold; }
 
-    .brightness-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .brightness-table td { 
-      padding: 14px 20px; 
-      border-bottom: 1px solid #eee; 
-    }
-    .brightness-table .label { 
-      font-weight: bold; 
-      text-align: left; 
-      width: 280px;
-      padding-left: 10px;
-    }
-    .brightness-table .value { 
-      text-align: right; 
-      font-weight: bold; 
-      color: #0C3C6B; 
-      width: 220px;
-      padding-right: 30px;
-    }
-    .brightness-table select,
-    .brightness-table input {
-      width: 160px;
-      text-align: right;
-      padding: 8px 12px;
-    }
+    .brightness-table td { padding: 14px 20px; border-bottom: 1px solid #eee; }
+    .brightness-table .label { font-weight: bold; text-align: left; width: 280px; }
+    .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; width: 220px; }
     .highlight { background: #e8f5e9 !important; }
   </style>
 </head>
@@ -57,7 +33,7 @@
   <div class="container">
     <h1>Projector Calculator</h1>
 
-    <!-- Requirement Selection -->
+    <!-- Requirement -->
     <div class="section">
       <h2>Requirement</h2>
       <div>
@@ -72,48 +48,30 @@
     <!-- 1. Screen Size -->
     <div class="section" id="dimensions-section">
       <h2>1. Screen Size</h2>
-      <div>
-        <label>Aspect Ratio:</label>
+      <div><label>Aspect Ratio:</label>
         <select id="aspect">
           <option value="16:9">16:9</option>
           <option value="16:10" selected>16:10</option>
           <option value="4:3">4:3</option>
         </select>
       </div>
-      <div>
-        <label>Units:</label>
+      <div><label>Units:</label>
         <select id="units">
           <option value="Meters">Meters</option>
           <option value="Inches">Inches</option>
         </select>
       </div>
-      <div>
-        <label>Image Width:</label>
-        <input type="text" id="width" value="3.000">
-      </div>
-      <div>
-        <label>Image Height:</label>
-        <input type="text" id="height" value="1.875">
-      </div>
-      <div>
-        <label>Image Diagonal:</label>
-        <input type="text" id="diagonal" value="3.538">
-      </div>
+      <div><label>Image Width:</label><input type="text" id="width" value="3.000"></div>
+      <div><label>Image Height:</label><input type="text" id="height" value="1.875"></div>
+      <div><label>Image Diagonal:</label><input type="text" id="diagonal" value="3.538"></div>
     </div>
 
     <!-- 2. Projector & Lens -->
     <div class="section">
       <h2>2. Projector & Lens Recommendation</h2>
-      <div>
-        <label>Projector Model:</label>
-        <select id="model"></select>
-      </div>
-      <div>
-        <label>Projection Distance (m):</label>
-        <input type="number" id="distance" value="" step="0.1" placeholder="Optional">
-      </div>
-      <div>
-        <label>Screen Gain:</label>
+      <div><label>Projector Model:</label><select id="model"></select></div>
+      <div><label>Projection Distance (m):</label><input type="number" id="distance" value="" step="0.1" placeholder="Optional"></div>
+      <div><label>Screen Gain:</label>
         <select id="gain">
           <option value="1.0" selected>1.0</option>
           <option value="1.1">1.1</option>
@@ -128,52 +86,25 @@
     <div class="section" id="brightness-section">
       <h2>3. Brightness Analysis</h2>
       <table class="brightness-table">
-        <tr>
-          <td class="label">Projector ANSI Lumens</td>
-          <td class="value"><span id="lumens-display">0</span></td>
-        </tr>
-        <tr>
-          <td class="label">Screen Gain</td>
-          <td class="value"><select id="gain-brightness">
-            <option value="1.0" selected>1.0</option>
-            <option value="1.1">1.1</option>
-            <option value="1.3">1.3</option>
-            <option value="1.5">1.5</option>
-          </select></td>
-        </tr>
-        <tr>
-          <td class="label">Ambient Light (Lux)</td>
-          <td class="value"><input type="number" id="ambient" value="50" step="10"></td>
-        </tr>
-        <tr>
-          <td class="label">Screen Area (m²)</td>
-          <td class="value"><span id="area">0</span></td>
-        </tr>
-        <tr>
-          <td class="label">Screen Illuminance (Lux)</td>
-          <td class="value"><span id="illuminance">0</span></td>
-        </tr>
-        <tr class="highlight">
-          <td class="label"><strong>Effective Luminance (Nit)</strong></td>
-          <td class="value"><strong><span id="effective">0</span></strong></td>
-        </tr>
-        <tr>
-          <td class="label"><strong>Image Quality Verdict</strong></td>
-          <td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td>
-        </tr>
+        <tr><td class="label">Projector ANSI Lumens</td><td class="value"><span id="lumens-display">0</span></td></tr>
+        <tr><td class="label">Screen Gain</td><td class="value"><select id="gain-brightness">
+          <option value="1.0" selected>1.0</option>
+          <option value="1.1">1.1</option>
+          <option value="1.3">1.3</option>
+          <option value="1.5">1.5</option>
+        </select></td></tr>
+        <tr><td class="label">Ambient Light (Lux)</td><td class="value"><input type="number" id="ambient" value="50" step="10"></td></tr>
+        <tr><td class="label">Screen Area (m²)</td><td class="value"><span id="area">0</span></td></tr>
+        <tr><td class="label">Screen Illuminance (Lux)</td><td class="value"><span id="illuminance">0</span></td></tr>
+        <tr class="highlight"><td class="label"><strong>Effective Luminance (Nit)</strong></td><td class="value"><strong><span id="effective">0</span></strong></td></tr>
+        <tr><td class="label"><strong>Contrast Ratio</strong></td><td class="value"><strong><span id="contrast-ratio">—</span></strong></td></tr>
+        <tr><td class="label"><strong>Image Quality Verdict</strong></td><td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td></tr>
       </table>
     </div>
 
     <div class="note">
-      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.
-    </div>
-    <div class="note">
-          * TR = Throw Distance
-    </div>
-    <div class="note">
-        <p><strong>Disclaimer:</strong></p>
-        <p>The calculations shown on this page are for guidance only, all equipment will have certain tolerances. 
-          The figures shown do not relate to the Sharp projector warranty conditions. Sharp Display Solutions cannot be held liable for any errors in these calculations.</p>
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.<br>
+      * Contrast Ratio = (Effective Nit + Ambient Lux) / Ambient Lux
     </div>
   </div>
 
@@ -270,7 +201,6 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81}
     ];
 
-
     const modelSelect = document.getElementById('model');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
@@ -286,11 +216,6 @@
       document.getElementById('dimensions-section').style.display = showDim ? 'block' : 'none';
       document.getElementById('brightness-section').style.display = showDim ? 'block' : 'none';
     }
-
-    document.getElementById('requirement').addEventListener('change', () => {
-      toggleSections();
-      renderLensTable();
-    });
 
     let lastChanged = 'width';
 
@@ -365,18 +290,22 @@
       const heightM = getImageHeightInMeters();
       const area = widthM * heightM;
 
-      const illuminance = area > 0 ? (lumens / area) : 0;
-      const effective = Math.max((illuminance - gain) / Math.PI, 5);
+      const illuminance = area > 0 ? (lumens * gain / area) : 0;
+      const effective = Math.max((illuminance - ambient * 0.35) / Math.PI, 5);
+
+      // Contrast Ratio
+      const contrastRatio = ambient > 0 ? ((effective + ambient) / ambient).toFixed(1) : "—";
 
       document.getElementById('area').textContent = area.toFixed(2);
       document.getElementById('illuminance').textContent = illuminance.toFixed(0);
       document.getElementById('effective').textContent = effective.toFixed(0);
+      document.getElementById('contrast-ratio').textContent = contrastRatio;
 
       let verdictText = "";
       let color = "black";
-      if (effective > 449) { verdictText = "Excellent"; color = "green"; }
-      else if (effective > 299) { verdictText = "Good"; color = "green"; }
-      else if (effective > 149) { verdictText = "Acceptable"; color = "orange"; }
+      if (effective > 200) { verdictText = "Excellent"; color = "green"; }
+      else if (effective > 120) { verdictText = "Good"; color = "green"; }
+      else if (effective > 70) { verdictText = "Acceptable"; color = "orange"; }
       else { verdictText = "Too Dim"; color = "red"; }
 
       const verdictEl = document.getElementById('verdict');
@@ -417,7 +346,6 @@
 
         if (isDimensionsMode) {
           const isSpecial = (l.lens === "NP44ML+XP01LK" || l.lens === "NP44ML+XP02LK");
-
           let minD_L1 = (l.trWide * imageW).toFixed(2);
           let maxD_L1 = (l.trTele * imageW).toFixed(2);
           let status = "Available";
@@ -456,7 +384,7 @@
               const area = parseFloat(w) * parseFloat(h);
               brightW = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              wideW = wideH = wideD = `<span class="warning">MinDist=${l.distMinWide}<br>MaxDist=${l.distMaxWide}</span>`;
+              wideW = wideH = wideD = `<span class="warning">Min=${l.distMinWide}<br>Max=${l.distMaxWide}</span>`;
               brightW = `<span class="warning">Out of Range</span>`;
             }
 
@@ -470,7 +398,7 @@
               const area = parseFloat(w) * parseFloat(h);
               brightT = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
             } else {
-              teleW = teleH = teleD = `<span class="warning">MinDist=${l.distMinTele}<br>MaxDist=${l.distMaxTele}</span>`;
+              teleW = teleH = teleD = `<span class="warning">Min=${l.distMinTele}<br>Max=${l.distMaxTele}</span>`;
               brightT = `<span class="warning">Out of Range</span>`;
             }
 
@@ -487,7 +415,7 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
-    // Event Listeners (unchanged)
+    // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('blur', () => { updateImageSize(id); });
@@ -518,15 +446,7 @@
     window.onload = function() {
       toggleSections();
       updateImageSize('width');
-      
-      if (uniqueModels.length > 0) {
-        modelSelect.value = uniqueModels[0];
-        const proj = database.find(l => l.model === modelSelect.value);
-        if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
-      }
-      
       renderLensTable();
-      updateBrightness();   // <-- Added to show Illuminance on refresh
     };
   </script>
 </body>
