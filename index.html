@@ -365,8 +365,8 @@
       const heightM = getImageHeightInMeters();
       const area = widthM * heightM;
 
-      const illuminance = area > 0 ? (lumens * gain / area) : 0;
-      const effective = Math.max((illuminance - ambient * 0.35) / Math.PI, 5);
+      const illuminance = area > 0 ? (lumens / area) : 0;
+      const effective = Math.max((illuminance - gain) / Math.PI, 5);
 
       document.getElementById('area').textContent = area.toFixed(2);
       document.getElementById('illuminance').textContent = illuminance.toFixed(0);
