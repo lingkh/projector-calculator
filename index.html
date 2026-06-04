@@ -1,35 +1,432 @@
-function updateBrightness() {
-  const lumens = parseFloat(document.getElementById('lumens-display').textContent) || 0;
-  const gain = parseFloat(document.getElementById('gain-brightness').value) || 1.0;
-  const ambient = parseFloat(document.getElementById('ambient').value) || 0;
-  
-  const widthM = getImageWidthInMeters();
-  const heightM = getImageHeightInMeters();
-  const area = widthM * heightM;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projector Calculator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background: #f4f6f9; }
+    .container { max-width: 1600px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    h1 { color: #0C3C6B; text-align: center; }
+    .section { margin: 25px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+    label { display: inline-block; width: 190px; font-weight: bold; }
+    input, select { padding: 10px; width: 250px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px; text-align: center; border-bottom: 1px solid #ddd; }
+    th { background: #0C3C6B; color: white; }
 
-  const illuminance = area > 0 ? (lumens / area) : 0;
-  const effective = Math.max((illuminance * gain) / Math.PI, 5);
-  
-  // 1. Keep the formula calculation clean as a pure number first
-  const rawContrastRatio = ambient > 0 ? ((illuminance * gain + ambient) / ambient) : 0;
+    .good { color: green; font-weight: bold; }
+    .warning { color: red; font-weight: bold; }
+    .note { font-size: 0.9em; color: #555; margin-top: 15px; }
 
-  document.getElementById('area').textContent = area.toFixed(2);
-  document.getElementById('illuminance').textContent = illuminance.toFixed(0);
-  document.getElementById('effective').textContent = effective.toFixed(0);
-  
-  // 2. Set the DOM textual display separately using .toFixed()
-  document.getElementById('contrast-ratio').textContent = ambient > 0 ? rawContrastRatio.toFixed(1) : "—";
+    .group-wide { background: #1e40af !important; color: white; }
+    .group-tele { background: #4338ca !important; color: white; }
+    .subheader { background: #e0f2fe !important; font-weight: bold; }
 
-  let verdictText = "";
-  let color = "black";
-  
-  // 3. Evaluate the condition using the PURE NUMBER variable (rawContrastRatio)
-  if (rawContrastRatio > 10.4) { verdictText = "Excellent"; color = "green"; }
-  else if (rawContrastRatio > 8.4) { verdictText = "Good"; color = "green"; }
-  else if (rawContrastRatio > 5.4) { verdictText = "Acceptable"; color = "orange"; }
-  else { verdictText = "Too Dim"; color = "red"; }
+    .brightness-table td { padding: 14px 20px; border-bottom: 1px solid #eee; }
+    .brightness-table .label { font-weight: bold; text-align: left; width: 280px; }
+    .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; width: 220px; }
+    .highlight { background: #e8f5e9 !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Projector Calculator</h1>
 
-  const verdictEl = document.getElementById('verdict');
-  verdictEl.textContent = verdictText;
-  verdictEl.style.color = color;
-}
+    <!-- Requirement -->
+    <div class="section">
+      <h2>Requirement</h2>
+      <div>
+        <label>Choose Input Type:</label>
+        <select id="requirement" style="width:320px;">
+          <option value="dimensions" selected>Dimensions (Width / Height / Diagonal)</option>
+          <option value="distance">Projection Distance</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 1. Screen Size -->
+    <div class="section" id="dimensions-section">
+      <h2>1. Screen Size</h2>
+      <div><label>Aspect Ratio:</label>
+        <select id="aspect">
+          <option value="16:9">16:9</option>
+          <option value="16:10" selected>16:10</option>
+          <option value="4:3">4:3</option>
+        </select>
+      </div>
+      <div><label>Units:</label>
+        <select id="units">
+          <option value="Meters">Meters</option>
+          <option value="Inches">Inches</option>
+        </select>
+      </div>
+      <div><label>Image Width:</label><input type="text" id="width" value="3.000"></div>
+      <div><label>Image Height:</label><input type="text" id="height" value="1.875"></div>
+      <div><label>Image Diagonal:</label><input type="text" id="diagonal" value="3.538"></div>
+    </div>
+
+    <!-- 2. Projector & Lens -->
+    <div class="section">
+      <h2>2. Projector & Lens Recommendation</h2>
+      <div><label>Projector Model:</label><select id="model"></select></div>
+      <div><label>Projection Distance (m):</label><input type="number" id="distance" value="" step="0.1" placeholder="Optional"></div>
+      <div><label>Screen Gain:</label>
+        <select id="gain">
+          <option value="1.0" selected>1.0</option>
+          <option value="1.1">1.1</option>
+          <option value="1.3">1.3</option>
+          <option value="1.5">1.5</option>
+        </select>
+      </div>
+      <div id="lens-table" style="margin-top:15px;"></div>
+    </div>
+
+    <!-- 3. Brightness Analysis -->
+    <div class="section" id="brightness-section">
+      <h2>3. Brightness Analysis</h2>
+      <table class="brightness-table">
+        <tr><td class="label">Projector ANSI Lumens</td><td class="value"><span id="lumens-display">0</span></td></tr>
+        <tr><td class="label">Screen Gain</td><td class="value"><select id="gain-brightness">
+          <option value="1.0" selected>1.0</option>
+          <option value="1.1">1.1</option>
+          <option value="1.3">1.3</option>
+          <option value="1.5">1.5</option>
+        </select></td></tr>
+        <tr><td class="label">Ambient Light (Lux)</td><td class="value"><input type="number" id="ambient" value="50" step="10"></td></tr>
+        <tr><td class="label">Screen Area (m²)</td><td class="value"><span id="area">0</span></td></tr>
+        <tr><td class="label">Screen Illuminance (Lux)</td><td class="value"><span id="illuminance">0</span></td></tr>
+        <tr class="highlight"><td class="label"><strong>Effective Luminance (Nit)</strong></td><td class="value"><strong><span id="effective">0</span></strong></td></tr>
+        <tr><td class="label"><strong>Contrast Ratio</strong></td><td class="value"><strong><span id="contrast-ratio">—</span></strong></td></tr>
+        <tr><td class="label"><strong>Image Quality Verdict</strong></td><td class="value"><span id="verdict" style="font-weight:bold; padding:8px 16px; border-radius:6px;"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="note">
+      * In Dimensions mode with distance: Only Perfect Fit lenses are shown.<br>
+      * Contrast Ratio = (Effective Nit + Ambient Lux) / Ambient Lux
+    </div>
+  </div>
+
+  <script>
+    // ================== FULL DATABASE ==================
+    const database = [
+      {model:"XP-E501U-W", lens:"Fixed", trWide:1.37, trTele:1.65, lumens:5000, distMinWide:0.85, distMaxWide:8.82, distMinTele:1.04, distMaxTele:10.65},
+      {model:"XP-P621U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:6200, distMinWide:0.68, distMaxWide:7.06, distMinTele:1.12, distMaxTele:11.47},
+      {model:"XP-P701U-W", lens:"Fixed", trWide:1.08, trTele:1.76, lumens:7000, distMinWide:0.68, distMaxWide:7.06, distMinTele:1.12, distMaxTele:11.47},
+      {model:"XP-P601Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:6000, distMinWide:1.64, distMaxWide:8.4, distMinTele:2.66, distMaxTele:13.37},
+      {model:"XP-P721Q-W", lens:"Fixed", trWide:1.25, trTele:2, lumens:7200, distMinWide:1.64, distMaxWide:8.4, distMinTele:2.66, distMaxTele:13.37},
+      {model:"XP-V731U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V731U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V731U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V731U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V731U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V731U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V731U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V731U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V731U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V731U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V801U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V801U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V801U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V801U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-V801U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-V801U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-V801U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-V801U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A824U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A824U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A824U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A824U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A824U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A824U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A824U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A824U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A104U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
+      {model:"XP-A104U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
+      {model:"XP-A104U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
+      {model:"XP-A104U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
+      {model:"XP-A104U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A155U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A155U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A155U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A155U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A155U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A155U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A201U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:20000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A201U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:20000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A201U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:20000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A201U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:20000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A201U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:20000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81}
+    ];
+
+    const modelSelect = document.getElementById('model');
+    const uniqueModels = [...new Set(database.map(item => item.model))];
+    uniqueModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      modelSelect.appendChild(opt);
+    });
+
+    function toggleSections() {
+      const mode = document.getElementById('requirement').value;
+      const showDim = (mode === 'dimensions');
+      document.getElementById('dimensions-section').style.display = showDim ? 'block' : 'none';
+      document.getElementById('brightness-section').style.display = showDim ? 'block' : 'none';
+    }
+
+    let lastChanged = 'width';
+
+    function getAspectRatio() {
+      const val = document.getElementById('aspect').value;
+      if (val === "16:9") return 9/16;
+      if (val === "16:10") return 10/16;
+      if (val === "4:3") return 3/4;
+      return 10/16;
+    }
+
+    function getImageWidthInMeters() {
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      return document.getElementById('units').value === "Inches" ? w / 39.3701 : w;
+    }
+
+    function getImageHeightInMeters() {
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      return document.getElementById('units').value === "Inches" ? h / 39.3701 : h;
+    }
+
+    function getAdjustedDistance(dist, lensName, isAddOffset) {
+      if (!dist) return 0;
+      const offset = 0.6136;
+      const isSpecial = (lensName === "NP44ML+XP01LK" || lensName === "NP44ML+XP02LK");
+      return isSpecial ? (isAddOffset ? dist + offset : Math.max(0, dist - offset)) : dist;
+    }
+
+    function updateImageSize(changedField = null) {
+      if (changedField) lastChanged = changedField;
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      let d = parseFloat(document.getElementById('diagonal').value) || 3.538;
+      const ratio = getAspectRatio();
+
+      if (lastChanged === 'width') {
+        h = w * ratio;
+        d = Math.sqrt(w*w + h*h);
+      } else if (lastChanged === 'height') {
+        w = h / ratio;
+        d = Math.sqrt(w*w + h*h);
+      } else if (lastChanged === 'diagonal') {
+        w = d / Math.sqrt(1 + ratio*ratio);
+        h = w * ratio;
+      }
+
+      document.getElementById('width').value = w.toFixed(3);
+      document.getElementById('height').value = h.toFixed(3);
+      document.getElementById('diagonal').value = d.toFixed(3);
+      renderLensTable();
+      updateBrightness();
+    }
+
+    function applyUnitConversion() {
+      const isInches = document.getElementById('units').value === "Inches";
+      const conv = isInches ? 39.3701 : 1/39.3701;
+      let w = parseFloat(document.getElementById('width').value) || 3.0;
+      let h = parseFloat(document.getElementById('height').value) || 1.875;
+      let d = parseFloat(document.getElementById('diagonal').value) || 3.538;
+
+      document.getElementById('width').value = (w * conv).toFixed(3);
+      document.getElementById('height').value = (h * conv).toFixed(3);
+      document.getElementById('diagonal').value = (d * conv).toFixed(3);
+    }
+
+    function updateBrightness() {
+  	const lumens = parseFloat(document.getElementById('lumens-display').textContent) || 0;
+  	const gain = parseFloat(document.getElementById('gain-brightness').value) || 1.0;
+  	const ambient = parseFloat(document.getElementById('ambient').value) || 0;
+  
+  	const widthM = getImageWidthInMeters();
+  	const heightM = getImageHeightInMeters();
+  	const area = widthM * heightM;
+
+  	const illuminance = area > 0 ? (lumens / area) : 0;
+  	const effective = Math.max((illuminance * gain) / Math.PI, 5);
+  
+  	// 1. Keep the formula calculation clean as a pure number first
+  	const rawContrastRatio = ambient > 0 ? ((illuminance * gain + ambient) / ambient) : 0;
+
+  	document.getElementById('area').textContent = area.toFixed(2);
+  	document.getElementById('illuminance').textContent = illuminance.toFixed(0);
+  	document.getElementById('effective').textContent = effective.toFixed(0);
+  
+  	// 2. Set the DOM textual display separately using .toFixed()
+  	document.getElementById('contrast-ratio').textContent = ambient > 0 ? rawContrastRatio.toFixed(1) : "—";
+
+  	let verdictText = "";
+  	let color = "black";
+  
+  	// 3. Evaluate the condition using the PURE NUMBER variable (rawContrastRatio)
+  	if (rawContrastRatio > 10.4) { verdictText = "Excellent"; color = "green"; }
+  	else if (rawContrastRatio > 8.4) { verdictText = "Good"; color = "green"; }
+  	else if (rawContrastRatio > 5.4) { verdictText = "Acceptable"; color = "orange"; }
+  	else { verdictText = "Too Dim"; color = "red"; }
+
+  	const verdictEl = document.getElementById('verdict');
+  	verdictEl.textContent = verdictText;
+ 	 verdictEl.style.color = color;
+	}
+
+    function renderLensTable() {
+      const selectedModel = modelSelect.value;
+      const distL1 = parseFloat(document.getElementById('distance').value);
+      const isDimensionsMode = document.getElementById('requirement').value === 'dimensions';
+      const aspectRatio = getAspectRatio();
+      const gain = parseFloat(document.getElementById('gain').value) || 1.0;
+      const imageW = getImageWidthInMeters();
+
+      let html = `<table><tr><th>Lens</th><th>TR Wide</th><th>TR Tele</th>`;
+
+      if (isDimensionsMode) {
+        if (distL1) {
+          html += `<th>Min Distance (m)</th><th>Max Distance (m)</th><th>Status</th></tr>`;
+        } else {
+          html += `<th>Min Distance (m)</th><th>Max Distance (m)</th></tr>`;
+        }
+      } else {
+        html += `<th colspan="4" class="group-wide" style="text-align:center;">TR Wide (Maximum Image)</th>`;
+        html += `<th colspan="4" class="group-tele" style="text-align:center;">TR Tele (Minimum Image)</th></tr>`;
+      }
+
+      if (!isDimensionsMode) {
+        html += `<tr><th></th><th></th><th></th><th class="subheader-wide">Width</th><th class="subheader-wide">Height</th><th class="subheader-wide">Diag</th><th class="subheader-wide">Brightness (Lux)</th>`;
+        html += `<th class="subheader-tele">Width</th><th class="subheader-tele">Height</th><th class="subheader-tele">Diag</th><th class="subheader-tele">Brightness (Lux)</th></tr>`;
+      }
+
+      const lenses = database.filter(l => l.model === selectedModel);
+
+      lenses.forEach(l => {
+        let row = `<tr><td>${l.lens}</td><td>${l.trWide}</td><td>${l.trTele}</td>`;
+
+        if (isDimensionsMode) {
+          const isSpecial = (l.lens === "NP44ML+XP01LK" || l.lens === "NP44ML+XP02LK");
+          let minD_L1 = (l.trWide * imageW).toFixed(2);
+          let maxD_L1 = (l.trTele * imageW).toFixed(2);
+          let status = "Available";
+
+          if (distL1) {
+            const distL2 = getAdjustedDistance(distL1, l.lens, true);
+            const minD_L2 = l.trWide * imageW;
+            const maxD_L2 = l.trTele * imageW;
+
+            minD_L1 = isSpecial ? (minD_L2 - 0.6136).toFixed(2) : minD_L2.toFixed(2);
+            maxD_L1 = isSpecial ? (maxD_L2 - 0.6136).toFixed(2) : maxD_L2.toFixed(2);
+
+            const isPerfect = distL1 >= parseFloat(minD_L1) && distL1 <= parseFloat(maxD_L1);
+            if (!isPerfect) return;
+
+            status = "✅ Perfect Fit";
+          } else {
+            if (isSpecial) {
+              minD_L1 = (l.trWide * imageW - 0.6136).toFixed(2);
+              maxD_L1 = (l.trTele * imageW - 0.6136).toFixed(2);
+            }
+          }
+
+          row += `<td>${minD_L1}</td><td>${maxD_L1}</td>`;
+          if (distL1) row += `<td class="good">${status}</td>`;
+          row += `</tr>`;
+        } else {
+          if (distL1 > 0) {
+            const distL2_wide = getAdjustedDistance(distL1, l.lens, true);
+            let wideW = "", wideH = "", wideD = "", brightW = "";
+            if (distL2_wide >= l.distMinWide && distL2_wide <= l.distMaxWide) {
+              const w = (distL2_wide / l.trWide).toFixed(2);
+              const h = (parseFloat(w) * aspectRatio).toFixed(2);
+              const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
+              wideW = w; wideH = h; wideD = d;
+              const area = parseFloat(w) * parseFloat(h);
+              brightW = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
+            } else {
+              wideW = wideH = wideD = `<span class="warning">Min=${l.distMinWide}<br>Max=${l.distMaxWide}</span>`;
+              brightW = `<span class="warning">Out of Range</span>`;
+            }
+
+            const distL2_tele = getAdjustedDistance(distL1, l.lens, true);
+            let teleW = "", teleH = "", teleD = "", brightT = "";
+            if (distL2_tele >= l.distMinTele && distL2_tele <= l.distMaxTele) {
+              const w = (distL2_tele / l.trTele).toFixed(2);
+              const h = (parseFloat(w) * aspectRatio).toFixed(2);
+              const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
+              teleW = w; teleH = h; teleD = d;
+              const area = parseFloat(w) * parseFloat(h);
+              brightT = area > 0 ? (l.lumens * gain / area).toFixed(0) : "—";
+            } else {
+              teleW = teleH = teleD = `<span class="warning">Min=${l.distMinTele}<br>Max=${l.distMaxTele}</span>`;
+              brightT = `<span class="warning">Out of Range</span>`;
+            }
+
+            row += `<td>${wideW}</td><td>${wideH}</td><td>${wideD}</td><td>${brightW}</td>`;
+            row += `<td>${teleW}</td><td>${teleH}</td><td>${teleD}</td><td>${brightT}</td>`;
+          } else {
+            row += `<td colspan="8">Enter distance above</td>`;
+          }
+        }
+        html += row + `</tr>`;
+      });
+
+      html += `</table>`;
+      document.getElementById('lens-table').innerHTML = html;
+    }
+
+    // Event Listeners
+    ['width', 'height', 'diagonal'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('blur', () => { updateImageSize(id); });
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') { updateImageSize(id); el.blur(); }
+      });
+    });
+
+    document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); });
+    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
+    document.getElementById('distance').addEventListener('input', renderLensTable);
+    document.getElementById('gain').addEventListener('change', renderLensTable);
+    document.getElementById('gain-brightness').addEventListener('change', updateBrightness);
+    document.getElementById('ambient').addEventListener('input', updateBrightness);
+    modelSelect.addEventListener('change', () => {
+      const proj = database.find(l => l.model === modelSelect.value);
+      if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
+      renderLensTable();
+      updateBrightness();
+    });
+
+    document.getElementById('requirement').addEventListener('change', () => {
+      toggleSections();
+      renderLensTable();
+    });
+
+    // Initial load - Fixed to properly calculate Illuminance
+    window.onload = function() {
+      toggleSections();
+      updateImageSize('width');
+      
+      // Set default model and trigger full brightness calculation
+      if (uniqueModels.length > 0) {
+        modelSelect.value = uniqueModels[0];
+        const proj = database.find(l => l.model === modelSelect.value);
+        if (proj) {
+          document.getElementById('lumens-display').textContent = proj.lumens;
+        }
+      }
+      
+      renderLensTable();
+      updateBrightness();   // Ensure Illuminance shows on refresh
+    };
+  </script>
+</body>
+</html>
