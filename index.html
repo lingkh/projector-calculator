@@ -254,9 +254,9 @@
       const heightM = getImageHeightInMeters();
       const area = widthM * heightM;
 
-      const illuminance = area > 0 ? (lumens * gain / area) : 0;
-      const effective = Math.max((illuminance - ambient * 0.35) / Math.PI, 5);
-      const contrastRatio = ambient > 0 ? ((effective + ambient) / ambient).toFixed(1) : "—";
+      const illuminance = area > 0 ? (lumens / area) : 0;
+      const effective = Math.max((illuminance * gain) / Math.PI, 5);
+      const contrastRatio = ambient > 0 ? ((illuminance * gain + ambient) / ambient).toFixed(1) : "—";
 
       document.getElementById('area').textContent = area.toFixed(2);
       document.getElementById('illuminance').textContent = illuminance.toFixed(0);
@@ -265,9 +265,9 @@
 
       let verdictText = "";
       let color = "black";
-      if (effective > 200) { verdictText = "Excellent"; color = "green"; }
-      else if (effective > 120) { verdictText = "Good"; color = "green"; }
-      else if (effective > 70) { verdictText = "Acceptable"; color = "orange"; }
+      if (contrastRatio > 10.4) { verdictText = "Excellent"; color = "green"; }
+      else if (contrastRatio > 8.4) { verdictText = "Good"; color = "green"; }
+      else if (contrastRatio > 5.4) { verdictText = "Acceptable"; color = "orange"; }
       else { verdictText = "Too Dim"; color = "red"; }
 
       const verdictEl = document.getElementById('verdict');
