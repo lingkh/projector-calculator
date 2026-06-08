@@ -274,6 +274,7 @@
   	if (rawContrastRatio > 10.4) { verdictText = "Excellent"; color = "green"; }
   	else if (rawContrastRatio > 8.4) { verdictText = "Good"; color = "green"; }
   	else if (rawContrastRatio > 5.4) { verdictText = "Acceptable"; color = "orange"; }
+  	else if (rawContrastRatio > 4.0) { verdictText = "Poor"; color = "orange"; }
   	else { verdictText = "Too Dim"; color = "red"; }
 
   	const verdictEl = document.getElementById('verdict');
