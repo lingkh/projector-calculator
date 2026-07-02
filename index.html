@@ -27,6 +27,21 @@
     .brightness-table .label { font-weight: bold; text-align: left; width: 280px; }
     .brightness-table .value { text-align: right; font-weight: bold; color: #0C3C6B; width: 220px; }
     .highlight { background: #e8f5e9 !important; }
+
+    .shift-bar { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; padding: 10px 14px; background: #f0f4f8; border-radius: 8px; }
+    .shift-readout { font-weight: bold; color: #0C3C6B; }
+    #shift-center-btn { margin-left: auto; padding: 6px 16px; border: none; background: #0C3C6B; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    #shift-center-btn:hover { background: #154a86; }
+
+    .viz-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .viz-tab { padding: 8px 16px; border: 1px solid #0C3C6B; background: white; color: #0C3C6B; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .viz-tab.active { background: #0C3C6B; color: white; }
+    .viz-panel { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; }
+    .viz-panel svg { width: 100%; height: 400px; display: block; touch-action: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; }
+    .viz-label { font-size: 13px; fill: #333; }
+    .viz-dim { font-size: 13px; fill: #0C3C6B; font-weight: bold; }
+    .shift-draggable { cursor: grab; }
+    .shift-draggable:active { cursor: grabbing; }
   </style>
 </head>
 <body>
@@ -70,6 +85,7 @@
     <div class="section">
       <h2>2. Projector & Lens Recommendation</h2>
       <div><label>Projector Model:</label><select id="model"></select></div>
+      <div><label>Lens:</label><select id="lens"></select></div>
       <div><label>Projection Distance (m):</label><input type="number" id="distance" value="" step="0.1" placeholder="Optional"></div>
       <div><label>Screen Gain:</label>
         <select id="gain">
@@ -102,12 +118,51 @@
       </table>
     </div>
 
+    <!-- 4. Visualization -->
+    <div class="section" id="visualization-section">
+      <h2>4. Visualization</h2>
+      <div class="shift-bar">
+        <div class="shift-readout"><span id="shift-h-text">Horizontal Shift</span>: <span id="shift-h-label">0%</span></div>
+        <div class="shift-readout"><span id="shift-v-text">Vertical Shift</span>: <span id="shift-v-label">0%</span></div>
+        <button id="shift-center-btn" type="button">Center</button>
+      </div>
+      <div class="viz-tabs">
+        <button class="viz-tab active" data-view="front">Front View</button>
+        <button class="viz-tab" data-view="side">Side View</button>
+        <button class="viz-tab" data-view="top">Top View</button>
+        <button class="viz-tab" data-view="3d">3D View</button>
+      </div>
+      <div id="viz-front" class="viz-panel"><svg id="svg-front" viewBox="0 0 600 400"></svg></div>
+      <div id="viz-side" class="viz-panel" style="display:none;"><svg id="svg-side" viewBox="0 0 600 400"></svg></div>
+      <div id="viz-top" class="viz-panel" style="display:none;"><svg id="svg-top" viewBox="0 0 600 400"></svg></div>
+      <div id="viz-3d" class="viz-panel" style="display:none;"><div id="viz-3d-canvas" style="width:100%; height:400px;"></div></div>
+      <div id="viz-44ml" class="viz-panel" style="display:none; margin-top:14px;">
+        <h3 style="margin-top:0;">XP-44ML Geometry</h3>
+        <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start;">
+          <svg id="svg-44ml" viewBox="0 0 600 430" style="flex:1; min-width:320px; height:430px;"></svg>
+          <table id="table-44ml" style="border-collapse:collapse; font-size:14px;">
+            <tr><th style="text-align:left; padding:4px 10px; border-bottom:1px solid #ddd;">Value</th><th style="text-align:right; padding:4px 10px; border-bottom:1px solid #ddd;">Meters</th></tr>
+            <tr><td style="padding:4px 10px;">L1</td><td id="val-44ml-l1" style="text-align:right; padding:4px 10px;"></td></tr>
+            <tr><td style="padding:4px 10px;">L2</td><td id="val-44ml-l2" style="text-align:right; padding:4px 10px;"></td></tr>
+            <tr><td style="padding:4px 10px;">H</td><td id="val-44ml-h" style="text-align:right; padding:4px 10px;"></td></tr>
+            <tr><td style="padding:4px 10px;">H1</td><td id="val-44ml-h1" style="text-align:right; padding:4px 10px;"></td></tr>
+            <tr><td style="padding:4px 10px;">H2</td><td id="val-44ml-h2" style="text-align:right; padding:4px 10px;"></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="note">* Visualization uses the current screen size and Projection Distance (m) field above. If no distance is entered, the Wide-zoom throw distance for the selected lens is used as an estimate.<br>
+      * Click and drag the projected image (yellow) to adjust lens shift, within the lens's shift range.<br>
+      * In Side/Top View, click and drag the projector itself to change the projection distance — image size, brightness, and contrast update to match.</div>
+    </div>
+
     <div class="note">
       * In Dimensions mode with distance: Only Perfect Fit lenses are shown.<br>
       * Contrast Ratio = (Effective Nit + Ambient Lux) / Ambient Lux
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script>
     // ================== FULL DATABASE ==================
     const database = [
@@ -120,43 +175,73 @@
       {model:"XP-V731U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-V731U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-V731U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-V731U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V731U-W", lens:"XP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-V731U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:7300, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-V731U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:7300, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-V731U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:7300, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-V731U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:7300, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-V731U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V731U-B", lens:"XP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:7300, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-V801U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-V801U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-V801U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-V801U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-V801U-W", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-W", lens:"XP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-V801U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-V801U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-V801U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-V801U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-V801U-B", lens:"NP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-V801U-B", lens:"XP44ML+XP01LK", trWide:0.32, trTele:0.32, lumens:8000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-A824U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-A824U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-A824U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-A824U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-A824U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-W", lens:"XP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-A824U-B", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:8200, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-A824U-B", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:8200, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-A824U-B", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:8200, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-A824U-B", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:8200, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-A824U-B", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A824U-B", lens:"XP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:8200, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-A104U-W", lens:"XP40ZL", trWide:0.79, trTele:1.11, lumens:10000, distMinWide:0.83, distMaxWide:8.64, distMinTele:1.18, distMaxTele:12.14},
       {model:"XP-A104U-W", lens:"XP41ZL", trWide:1.3, trTele:3.02, lumens:10000, distMinWide:1.38, distMaxWide:14.2, distMinTele:3.23, distMaxTele:32.63},
       {model:"XP-A104U-W", lens:"XP43ZL", trWide:2.99, trTele:5.93, lumens:10000, distMinWide:3.29, distMaxWide:31.67, distMinTele:6.44, distMaxTele:63.41},
       {model:"XP-A104U-W", lens:"XP50ZL", trWide:0.6, trTele:0.75, lumens:10000, distMinWide:0.76, distMaxWide:6.69, distMinTele:0.96, distMaxTele:8.33},
-      {model:"XP-A104U-W", lens:"NP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
+      {model:"XP-A104U-W", lens:"XP44ML+XP02LK", trWide:0.32, trTele:0.32, lumens:10000, distMinWide:0.09, distMaxWide:2.27, distMinTele:0.09, distMaxTele:2.27},
       {model:"XP-A155U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
       {model:"XP-A155U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
       {model:"XP-A155U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
       {model:"XP-A155U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
       {model:"XP-A155U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
       {model:"XP-A155U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A155U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:14000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A155U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:14000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A155U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:14000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A155U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:14000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A155U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:14000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A155U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:14000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A175U-W", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A175U-W", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A175U-W", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A175U-W", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A175U-W", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A175U-W", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-A175U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:16000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
+      {model:"XP-A175U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:16000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
+      {model:"XP-A175U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:16000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
+      {model:"XP-A175U-B", lens:"XP54ZL", trWide:1.24, trTele:2.01, lumens:16000, distMinWide:1.57, distMaxWide:13.68, distMinTele:2.57, distMaxTele:21.94},
+      {model:"XP-A175U-B", lens:"XP55ZL", trWide:1.98, trTele:3.96, lumens:16000, distMinWide:2.51, distMaxWide:21.74, distMinTele:5.05, distMaxTele:42.95},
+      {model:"XP-A175U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:16000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81},
+      {model:"XP-X141Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:13500, distMinWide:0.39, distMaxWide:2.79, distMinTele:0.41, distMaxTele:3.01},
+      {model:"XP-X141Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:13500, distMinWide:0.7, distMaxWide:	4.78, distMinTele:0.97, distMaxTele:6.59},
+      {model:"XP-X141Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:13500, distMinWide:0.75, distMaxWide:8.31, distMinTele:1.14, distMaxTele:12.22},
+      {model:"XP-X141Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:13500, distMinWide:1.07, distMaxWide:14, distMinTele:1.49, distMaxTele:18.95},
+      {model:"XP-X141Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:13500, distMinWide:1.47, distMaxWide:18.51, distMinTele:2.25, distMaxTele:27.86},
+      {model:"XP-X141Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:13500, distMinWide:2.25, distMaxWide:27.33, distMinTele:4.3, distMaxTele:54.19},
+      {model:"XP-X171Q-B", lens:"XP57ZL", trWide:0.31, trTele:0.33, lumens:16500, distMinWide:0.39, distMaxWide:2.79, distMinTele:0.41, distMaxTele:3.01},
+      {model:"XP-X171Q-B", lens:"XP58ZL", trWide:0.55, trTele:0.75, lumens:16500, distMinWide:0.7, distMaxWide:	4.78, distMinTele:0.97, distMaxTele:6.59},
+      {model:"XP-X171Q-B", lens:"XP59ZL", trWide:0.74, trTele:1.08, lumens:16500, distMinWide:0.75, distMaxWide:8.31, distMinTele:1.14, distMaxTele:12.22},
+      {model:"XP-X171Q-B", lens:"XP60ZL", trWide:1.05, trTele:1.41, lumens:16500, distMinWide:1.07, distMaxWide:14, distMinTele:1.49, distMaxTele:18.95},
+      {model:"XP-X171Q-B", lens:"XP61ZL", trWide:1.4, trTele:2.11, lumens:16500, distMinWide:1.47, distMaxWide:18.51, distMinTele:2.25, distMaxTele:27.86},
+      {model:"XP-X171Q-B", lens:"XP62ZL", trWide:2.1, trTele:4.1, lumens:16500, distMinWide:2.25, distMaxWide:27.33, distMinTele:4.3, distMaxTele:54.19},
       {model:"XP-A201U-B", lens:"XP51ZL", trWide:0.53, trTele:0.65, lumens:20000, distMinWide:0.66, distMaxWide:5.96, distMinTele:0.82, distMaxTele:7.25},
       {model:"XP-A201U-B", lens:"XP52ZL", trWide:0.65, trTele:0.87, lumens:20000, distMinWide:0.82, distMaxWide:7.17, distMinTele:1.1, distMaxTele:9.53},
       {model:"XP-A201U-B", lens:"XP53ZL", trWide:0.86, trTele:1.25, lumens:20000, distMinWide:1.09, distMaxWide:9.4, distMinTele:1.61, distMaxTele:13.72},
@@ -165,7 +250,52 @@
       {model:"XP-A201U-B", lens:"XP56ZL", trWide:3.95, trTele:7.51, lumens:20000, distMinWide:5.24, distMaxWide:41.37, distMinTele:9.85, distMaxTele:79.81}
     ];
 
+    // Tested/approved overall screen-size range (diagonal inches) per model -- narrower than a lens's own
+    // theoretical distMinWide/distMaxTele throw-distance range, which is why dragging the projector in
+    // Side/Top View needs its own clamp against this table on top of the lens's raw distance limits.
+    // The XP44ML add-on lens has its own narrower approved range than every other lens on the same body.
+    // Screen size limits keyed by lens name (zoom lenses) or model name (fixed-lens projectors).
+    // Diagonal values are in inches. For zoom lenses the key is the lens prefix (e.g. 'XP44ML' matches
+    // 'XP44ML+XP01LK'). For fixed-lens projectors the key is the projector model name.
+    const lensScreenSizeLimits = {
+      // Fixed-lens projectors
+      'XP-E501U-W': { minDiag: 30, maxDiag: 300 },
+      'XP-P621U-W': { minDiag: 30, maxDiag: 300 },
+      'XP-P701U-W': { minDiag: 30, maxDiag: 300 },
+      'XP-P601Q-W': { minDiag: 60, maxDiag: 300 },
+      'XP-P721Q-W': { minDiag: 60, maxDiag: 300 },
+      // Zoom lenses (matched by lens name prefix)
+      'XP40ZL':  { minDiag:  50, maxDiag: 500 },
+      'XP41ZL':  { minDiag:  50, maxDiag: 500 },
+      'XP43ZL':  { minDiag:  50, maxDiag: 500 },
+      'XP44ML':  { minDiag:  80, maxDiag: 400 },
+      'XP50ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP51ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP52ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP53ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP54ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP55ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP56ZL':  { minDiag:  60, maxDiag: 500 },
+      'XP57ZL':  { minDiag:  60, maxDiag: 400 },
+      'XP58ZL':  { minDiag:  60, maxDiag: 400 },
+      'XP59ZL':  { minDiag:  50, maxDiag: 500 },
+      'XP60ZL':  { minDiag:  50, maxDiag: 600 },
+      'XP61ZL':  { minDiag:  50, maxDiag: 600 },
+      'XP62ZL':  { minDiag:  50, maxDiag: 600 },
+    };
+
+    function getScreenSizeLimit(model, lens) {
+      // Zoom lenses: match by lens name prefix (handles compound names like 'XP44ML+XP01LK')
+      if (lens) {
+        const lensKey = Object.keys(lensScreenSizeLimits).find(k => !k.startsWith('XP-') && lens.startsWith(k));
+        if (lensKey) return lensScreenSizeLimits[lensKey];
+      }
+      // Fixed-lens projectors: match by model name
+      return lensScreenSizeLimits[model] ?? null;
+    }
+
     const modelSelect = document.getElementById('model');
+    const lensSelect = document.getElementById('lens');
     const uniqueModels = [...new Set(database.map(item => item.model))];
     uniqueModels.forEach(m => {
       const opt = document.createElement('option');
@@ -173,6 +303,23 @@
       opt.textContent = m;
       modelSelect.appendChild(opt);
     });
+
+    // A body model (e.g. XP-A824U-W) can have several interchangeable lens options, with overlapping
+    // throw-distance ranges -- which one is actually mounted isn't something the entered distance alone
+    // can tell us, so it's an explicit dropdown rather than guessed. Repopulates with the current model's
+    // lens options, keeping the previous selection if it's still valid for the new model.
+    function populateLensSelect() {
+      const lenses = database.filter(l => l.model === modelSelect.value).map(l => l.lens);
+      const prevLens = lensSelect.value;
+      lensSelect.innerHTML = '';
+      lenses.forEach(lens => {
+        const opt = document.createElement('option');
+        opt.value = lens;
+        opt.textContent = lens;
+        lensSelect.appendChild(opt);
+      });
+      lensSelect.value = lenses.includes(prevLens) ? prevLens : lenses[0];
+    }
 
     function toggleSections() {
       const mode = document.getElementById('requirement').value;
@@ -201,11 +348,247 @@
       return document.getElementById('units').value === "Inches" ? h / 39.3701 : h;
     }
 
+    // L1 (what the user enters/sees) can legitimately go negative for the XP44ML add-on: when the
+    // required L2 (lens-to-screen) distance is shorter than the lens's own 0.6136m optical offset, the
+    // main projector body has to sit BEHIND the wall plane (e.g. recessed into a wall pocket) for the
+    // 44ML attachment at the front to reach that L2 -- L2 itself stays positive throughout, only L1 (the
+    // gap from the projector body to the attachment) goes negative. So this is never clamped to zero.
+    // The L1<->L2 offset is per-lens, not a single constant: verified against the source workbook's
+    // XP-44ML sheet, cell N27, which VLOOKUPs the offset from a per-projector-body table (B29:O34) --
+    // 613.6mm for the A104U/A824U family (our XP44ML+XP02LK), 523mm for the V731U/V801U/V711U family
+    // (our XP44ML+XP01LK).
     function getAdjustedDistance(dist, lensName, isAddOffset) {
       if (!dist) return 0;
-      const offset = 0.6136;
-      const isSpecial = (lensName === "NP44ML+XP01LK" || lensName === "NP44ML+XP02LK");
-      return isSpecial ? (isAddOffset ? dist + offset : Math.max(0, dist - offset)) : dist;
+      const offset = lensName === "XP44ML+XP02LK" ? 0.6136 : lensName === "XP44ML+XP01LK" ? 0.523 : 0;
+      return offset ? (isAddOffset ? dist + offset : dist - offset) : dist;
+    }
+
+    function isXP44MLLens(lensName) {
+      return lensName === "XP44ML+XP01LK" || lensName === "XP44ML+XP02LK";
+    }
+
+    // Per-screen-size throw-ratio tables sourced from 20260701_Lense Parameter_r1.xlsx (col R = TR Wide,
+    // col S = TR Tele, col C = screen width in mm, rows 19-24 of each lens sheet).
+    // Each entry: {wM: image width in metres, trW: TR Wide, trT: TR Tele}.
+    // XP44ML lenses are handled separately via an affine formula and do not appear here.
+    const LENS_TR_TABLES = {
+      'XP40ZL': [
+        {wM:1.270, trW:0.7703, trT:1.0929},
+        {wM:2.540, trW:0.7884, trT:1.1122},
+        {wM:3.810, trW:0.7945, trT:1.1186},
+        {wM:5.080, trW:0.7975, trT:1.1218},
+        {wM:12.192, trW:0.8028, trT:1.1274},
+        {wM:12.700, trW:0.8029, trT:1.1276},
+      ],
+      'XP41ZL': [
+        {wM:1.270, trW:1.2812, trT:2.9977},
+        {wM:2.540, trW:1.3020, trT:3.0159},
+        {wM:3.810, trW:1.3089, trT:3.0219},
+        {wM:5.080, trW:1.3124, trT:3.0249},
+        {wM:12.192, trW:1.3185, trT:3.0302},
+        {wM:12.700, trW:1.3186, trT:3.0304},
+      ],
+      'XP43ZL': [
+        {wM:1.270, trW:3.0506, trT:5.9799},
+        {wM:2.540, trW:2.9900, trT:5.9290},
+        {wM:3.810, trW:2.9697, trT:5.9120},
+        {wM:5.080, trW:2.9596, trT:5.9035},
+        {wM:12.192, trW:2.9419, trT:5.8887},
+        {wM:12.700, trW:2.9414, trT:5.8882},
+      ],
+      'XP50ZL': [
+        {wM:1.524, trW:0.5884, trT:0.7388},
+        {wM:2.540, trW:0.6036, trT:0.7547},
+        {wM:3.810, trW:0.6112, trT:0.7627},
+        {wM:5.080, trW:0.6150, trT:0.7666},
+        {wM:12.192, trW:0.6216, trT:0.7736},
+        {wM:12.700, trW:0.6218, trT:0.7738},
+      ],
+      'XP51ZL': [
+        {wM:1.524, trW:0.5106, trT:0.6345},
+        {wM:2.540, trW:0.5301, trT:0.6521},
+        {wM:3.810, trW:0.5399, trT:0.6610},
+        {wM:5.080, trW:0.5448, trT:0.6654},
+        {wM:7.620, trW:0.5497, trT:0.6698},
+        {wM:12.700, trW:0.5536, trT:0.6733},
+      ],
+      'XP52ZL': [
+        {wM:1.524, trW:0.6279, trT:0.8512},
+        {wM:2.540, trW:0.6451, trT:0.8665},
+        {wM:3.810, trW:0.6538, trT:0.8741},
+        {wM:5.080, trW:0.6581, trT:0.8780},
+        {wM:7.620, trW:0.6624, trT:0.8818},
+        {wM:12.700, trW:0.6659, trT:0.8849},
+      ],
+      'XP53ZL': [
+        {wM:1.524, trW:0.8415, trT:1.2403},
+        {wM:2.540, trW:0.8556, trT:1.2556},
+        {wM:3.810, trW:0.8626, trT:1.2633},
+        {wM:5.080, trW:0.8661, trT:1.2671},
+        {wM:7.620, trW:0.8696, trT:1.2709},
+        {wM:12.700, trW:0.8724, trT:1.2740},
+      ],
+      'XP54ZL': [
+        {wM:1.524, trW:1.2148, trT:1.9872},
+        {wM:2.540, trW:1.2403, trT:2.0101},
+        {wM:3.810, trW:1.2530, trT:2.0216},
+        {wM:5.080, trW:1.2594, trT:2.0273},
+        {wM:7.620, trW:1.2658, trT:2.0331},
+        {wM:12.700, trW:1.2709, trT:2.0377},
+      ],
+      'XP55ZL': [
+        {wM:1.524, trW:1.9364, trT:3.9069},
+        {wM:2.540, trW:1.9742, trT:3.9442},
+        {wM:3.810, trW:1.9930, trT:3.9628},
+        {wM:5.080, trW:2.0025, trT:3.9721},
+        {wM:7.620, trW:2.0119, trT:3.9814},
+        {wM:12.700, trW:2.0194, trT:3.9889},
+      ],
+      'XP56ZL': [
+        {wM:1.524, trW:4.0528, trT:7.6201},
+        {wM:2.540, trW:3.9567, trT:7.5252},
+        {wM:3.810, trW:3.9086, trT:7.4778},
+        {wM:5.080, trW:3.8846, trT:7.4540},
+        {wM:7.620, trW:3.8606, trT:7.4303},
+        {wM:12.700, trW:3.8413, trT:7.4113},
+      ],
+      'XP57ZL': [
+        {wM:1.524, trW:0.2967, trT:0.3175},
+        {wM:2.540, trW:0.3099, trT:0.3325},
+        {wM:3.048, trW:0.3132, trT:0.3363},
+        {wM:3.302, trW:0.3144, trT:0.3378},
+        {wM:7.620, trW:0.3230, trT:0.3476},
+        {wM:10.160, trW:0.3247, trT:0.3495},
+      ],
+      'XP58ZL': [
+        {wM:1.524, trW:0.5416, trT:0.7450},
+        {wM:2.540, trW:0.5482, trT:0.7543},
+        {wM:3.048, trW:0.5499, trT:0.7567},
+        {wM:3.302, trW:0.5505, trT:0.7576},
+        {wM:7.620, trW:0.5548, trT:0.7637},
+        {wM:10.160, trW:0.5556, trT:0.7649},
+      ],
+      'XP59ZL': [
+        {wM:1.270, trW:0.6938, trT:1.0549},
+        {wM:2.540, trW:0.7371, trT:1.0992},
+        {wM:3.048, trW:0.7443, trT:1.1066},
+        {wM:3.302, trW:0.7471, trT:1.1094},
+        {wM:7.620, trW:0.7660, trT:1.1287},
+        {wM:12.700, trW:0.7718, trT:1.1346},
+      ],
+      'XP60ZL': [
+        {wM:1.270, trW:0.9875, trT:1.3754},
+        {wM:2.540, trW:1.0397, trT:1.4252},
+        {wM:3.048, trW:1.0484, trT:1.4335},
+        {wM:3.302, trW:1.0518, trT:1.4367},
+        {wM:7.620, trW:1.0746, trT:1.4584},
+        {wM:15.240, trW:1.0833, trT:1.4667},
+      ],
+      'XP61ZL': [
+        {wM:1.270, trW:1.3609, trT:2.0813},
+        {wM:2.540, trW:1.3998, trT:2.1219},
+        {wM:3.048, trW:1.4063, trT:2.1287},
+        {wM:3.302, trW:1.4088, trT:2.1313},
+        {wM:7.620, trW:1.4258, trT:2.1490},
+        {wM:15.240, trW:1.4323, trT:2.1558},
+      ],
+      'XP62ZL': [
+        {wM:1.270, trW:2.0819, trT:3.9929},
+        {wM:2.540, trW:2.0999, trT:4.1022},
+        {wM:3.048, trW:2.1030, trT:4.1204},
+        {wM:3.302, trW:2.1041, trT:4.1274},
+        {wM:7.620, trW:2.1120, trT:4.1750},
+        {wM:15.240, trW:2.1150, trT:4.1932},
+      ],
+      // Fixed-lens projectors — keyed by model name (lens field in DB is always 'Fixed').
+      // Data sourced from 20260701_Lense Parameter_r1_1.xlsx, col R = TR Wide, col S = TR Tele, rows 19-24.
+      'XP-E501U-W': [
+        {wM:0.762, trW:1.3285, trT:1.6113},
+        {wM:2.540, trW:1.3572, trT:1.6399},
+        {wM:3.810, trW:1.3613, trT:1.6440},
+        {wM:5.080, trW:1.3634, trT:1.6461},
+        {wM:6.350, trW:1.3646, trT:1.6473},
+        {wM:7.620, trW:1.3654, trT:1.6481},
+      ],
+      // XP-P621U-W and XP-P701U-W share the same optical engine / lens
+      'XP-P621U-W': [
+        {wM:0.762, trW:1.0520, trT:1.7339},
+        {wM:3.810, trW:1.0882, trT:1.7709},
+        {wM:5.080, trW:1.0904, trT:1.7732},
+        {wM:6.350, trW:1.0918, trT:1.7746},
+        {wM:7.366, trW:1.0925, trT:1.7754},
+        {wM:7.620, trW:1.0927, trT:1.7755},
+      ],
+      'XP-P701U-W': [
+        {wM:0.762, trW:1.0520, trT:1.7339},
+        {wM:3.810, trW:1.0882, trT:1.7709},
+        {wM:5.080, trW:1.0904, trT:1.7732},
+        {wM:6.350, trW:1.0918, trT:1.7746},
+        {wM:7.366, trW:1.0925, trT:1.7754},
+        {wM:7.620, trW:1.0927, trT:1.7755},
+      ],
+      // XP-P601Q-W and XP-P721Q-W share the same optical engine / lens
+      // wM = image width in metres for 16:9 native resolution: diagonal_in * 0.0254 * 16/sqrt(337)
+      'XP-P601Q-W': [
+        {wM:1.3286, trW:1.2355, trT:2.0023},  // 60"
+        {wM:2.2143, trW:1.2505, trT:2.0081},  // 100"
+        {wM:2.6572, trW:1.2542, trT:2.0096},  // 120"
+        {wM:3.3215, trW:1.2580, trT:2.0111},  // 150"
+        {wM:5.9787, trW:1.2646, trT:2.0137},  // 270"
+        {wM:6.6430, trW:1.2654, trT:2.0140},  // 300"
+      ],
+      'XP-P721Q-W': [
+        {wM:1.3286, trW:1.2355, trT:2.0023},  // 60"
+        {wM:2.2143, trW:1.2505, trT:2.0081},  // 100"
+        {wM:2.5847, trW:1.2542, trT:2.0096},  // 120"
+        {wM:3.3215, trW:1.2580, trT:2.0111},  // 150"
+        {wM:5.9787, trW:1.2646, trT:2.0137},  // 270"
+        {wM:6.6430, trW:1.2654, trT:2.0140},  // 300"
+      ],
+    };
+
+    // Interpolate throw ratio from a lens's per-screen-size table. Returns null if no table exists for that
+    // lens name (caller should fall back to the fixed trWide/trTele from the DB row).
+    function getTRForWidth(lensName, widthM, isWide) {
+      const table = LENS_TR_TABLES[lensName];
+      if (!table || !widthM) return null;
+      const key = isWide ? 'trW' : 'trT';
+      if (widthM <= table[0].wM) return table[0][key];
+      if (widthM >= table[table.length - 1].wM) return table[table.length - 1][key];
+      for (let i = 1; i < table.length; i++) {
+        if (widthM <= table[i].wM) {
+          const t = (widthM - table[i - 1].wM) / (table[i].wM - table[i - 1].wM);
+          return table[i - 1][key] + t * (table[i][key] - table[i - 1][key]);
+        }
+      }
+      return table[table.length - 1][key];
+    }
+
+    function lensGetTRWide(lensRow, widthM) {
+      const key = lensRow.lens === 'Fixed' ? lensRow.model : lensRow.lens;
+      return getTRForWidth(key, widthM, true) ?? lensRow.trWide;
+    }
+    function lensGetTRTele(lensRow, widthM) {
+      const key = lensRow.lens === 'Fixed' ? lensRow.model : lensRow.lens;
+      return getTRForWidth(key, widthM, false) ?? lensRow.trTele;
+    }
+
+    // XP44ML's L2-vs-width relationship isn't a constant ratio like every other lens in this calculator
+    // -- verified against the source workbook's XP-44ML sheet, column AJ (= L2/width), which drifts from
+    // ~0.320 at 80" up to ~0.335 at 400" rather than holding flat at the database's trWide/trTele = 0.32.
+    // That's because the sheet's real relationship is L2(mm) = 7.307*diagonalInches - 33.86 -- an affine
+    // function of diagonal with a nonzero intercept, not a pure multiple of width -- so these two
+    // functions replace trWide/trTele*width (and its inverse) specifically for the XP44ML lenses.
+    function getXP44MLL2FromWidth(widthMeters) {
+      const ar = getAspectRatio();
+      const diagIn = widthMeters / 0.0254 * Math.sqrt(1 + ar * ar);
+      return (7.307 * diagIn - 33.86) / 1000;
+    }
+
+    function getXP44MLWidthFromL2(l2Meters) {
+      const diagIn = (l2Meters * 1000 + 33.86) / 7.307;
+      const ar = getAspectRatio();
+      return (diagIn / Math.sqrt(1 + ar * ar)) * 0.0254;
     }
 
     function updateImageSize(changedField = null) {
@@ -231,6 +614,7 @@
       document.getElementById('diagonal').value = d.toFixed(3);
       renderLensTable();
       updateBrightness();
+      renderVisualization();
     }
 
     function applyUnitConversion() {
@@ -311,42 +695,53 @@
       const lenses = database.filter(l => l.model === selectedModel);
 
       lenses.forEach(l => {
-        let row = `<tr><td>${l.lens}</td><td>${l.trWide}</td><td>${l.trTele}</td>`;
+        let row = `<tr><td>${l.lens}</td><td>${lensGetTRWide(l, imageW).toFixed(4)}</td><td>${lensGetTRTele(l, imageW).toFixed(4)}</td>`;
 
         if (isDimensionsMode) {
-          const isSpecial = (l.lens === "NP44ML+XP01LK" || l.lens === "NP44ML+XP02LK");
-          let minD_L1 = (l.trWide * imageW).toFixed(2);
-          let maxD_L1 = (l.trTele * imageW).toFixed(2);
+          // The distance needed to hit the target screen size (minD/maxD_L2 = trWide/trTele * imageW)
+          // isn't necessarily one this lens can actually reach -- it still has to fall within the lens's
+          // own distMinWide/distMaxWide (wide zoom) and distMinTele/distMaxTele (tele zoom) ranges, the
+          // same physical limits Side/Top View's drag clamp enforces. Flag it as out of range rather than
+          // silently presenting an unreachable distance as if it were a valid recommendation.
+          // XP44ML doesn't actually have a constant trWide/trTele ratio (see getXP44MLL2FromWidth) --
+          // use the exact diagonal-based formula for it instead.
+          const minD_L2 = isXP44MLLens(l.lens) ? getXP44MLL2FromWidth(imageW) : lensGetTRWide(l, imageW) * imageW;
+          const maxD_L2 = isXP44MLLens(l.lens) ? getXP44MLL2FromWidth(imageW) : lensGetTRTele(l, imageW) * imageW;
+          // distMinWide/distMaxWide/distMinTele/distMaxTele are specified as L1 distances (what the user
+          // sees), but minD_L2/maxD_L2 above are geometric L2 distances -- convert to L1 before comparing.
+          const minD_L1num = getAdjustedDistance(minD_L2, l.lens, false);
+          const maxD_L1num = getAdjustedDistance(maxD_L2, l.lens, false);
+          // If the entered diagonal is within the lens's approved screen-size range, treat both distances
+          // as in-range regardless of the physical distMin/distMax limits.
+          const diagInches = imageW * Math.sqrt(1 + aspectRatio * aspectRatio) / 0.0254;
+          const lensLimit = getScreenSizeLimit(selectedModel, l.lens);
+          // Allow 0.5" tolerance to absorb floating-point round-trip error (width→diagonal conversion).
+          const isInApprovedRange = lensLimit ? (diagInches >= lensLimit.minDiag - 0.5 && diagInches <= lensLimit.maxDiag + 0.5) : false;
+          const wideOk = isInApprovedRange || (minD_L1num >= l.distMinWide && minD_L1num <= l.distMaxWide);
+          const teleOk = isInApprovedRange || (maxD_L1num >= l.distMinTele && maxD_L1num <= l.distMaxTele);
+          const minD_L1 = minD_L1num.toFixed(2);
+          const maxD_L1 = maxD_L1num.toFixed(2);
           let status = "Available";
 
           if (distL1) {
-            const distL2 = getAdjustedDistance(distL1, l.lens, true);
-            const minD_L2 = l.trWide * imageW;
-            const maxD_L2 = l.trTele * imageW;
-
-            minD_L1 = isSpecial ? (minD_L2 - 0.6136).toFixed(2) : minD_L2.toFixed(2);
-            maxD_L1 = isSpecial ? (maxD_L2 - 0.6136).toFixed(2) : maxD_L2.toFixed(2);
-
-            const isPerfect = distL1 >= parseFloat(minD_L1) && distL1 <= parseFloat(maxD_L1);
+            const isPerfect = wideOk && teleOk && distL1 >= parseFloat(minD_L1) && distL1 <= parseFloat(maxD_L1);
             if (!isPerfect) return;
-
             status = "✅ Perfect Fit";
-          } else {
-            if (isSpecial) {
-              minD_L1 = (l.trWide * imageW - 0.6136).toFixed(2);
-              maxD_L1 = (l.trTele * imageW - 0.6136).toFixed(2);
-            }
           }
 
-          row += `<td>${minD_L1}</td><td>${maxD_L1}</td>`;
+          const minCell = wideOk ? minD_L1 : `<span class="warning">${minD_L1} (out of range)</span>`;
+          const maxCell = teleOk ? maxD_L1 : `<span class="warning">${maxD_L1} (out of range)</span>`;
+          row += `<td>${minCell}</td><td>${maxCell}</td>`;
           if (distL1) row += `<td class="good">${status}</td>`;
           row += `</tr>`;
         } else {
           if (distL1 > 0) {
             const distL2_wide = getAdjustedDistance(distL1, l.lens, true);
             let wideW = "", wideH = "", wideD = "", brightW = "";
-            if (distL2_wide >= l.distMinWide && distL2_wide <= l.distMaxWide) {
-              const w = (distL2_wide / l.trWide).toFixed(2);
+            // distMinWide/distMaxWide are L1 distances -- compare against distL1 (the entered value)
+            // directly, not the L2-converted distL2_wide used for the actual width math below.
+            if (distL1 >= l.distMinWide && distL1 <= l.distMaxWide) {
+              const w = (isXP44MLLens(l.lens) ? getXP44MLWidthFromL2(distL2_wide) : distL2_wide / lensGetTRWide(l, distL2_wide / l.trWide)).toFixed(2);
               const h = (parseFloat(w) * aspectRatio).toFixed(2);
               const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
               wideW = w; wideH = h; wideD = d;
@@ -359,8 +754,9 @@
 
             const distL2_tele = getAdjustedDistance(distL1, l.lens, true);
             let teleW = "", teleH = "", teleD = "", brightT = "";
-            if (distL2_tele >= l.distMinTele && distL2_tele <= l.distMaxTele) {
-              const w = (distL2_tele / l.trTele).toFixed(2);
+            // distMinTele/distMaxTele are also L1 distances -- same fix as the wide case above.
+            if (distL1 >= l.distMinTele && distL1 <= l.distMaxTele) {
+              const w = (isXP44MLLens(l.lens) ? getXP44MLWidthFromL2(distL2_tele) : distL2_tele / lensGetTRTele(l, distL2_tele / l.trTele)).toFixed(2);
               const h = (parseFloat(w) * aspectRatio).toFixed(2);
               const d = Math.sqrt(Math.pow(parseFloat(w),2) + Math.pow(parseFloat(h),2)).toFixed(2);
               teleW = w; teleH = h; teleD = d;
@@ -384,6 +780,876 @@
       document.getElementById('lens-table').innerHTML = html;
     }
 
+    // ================== VISUALIZATION ==================
+    let viz3d = null;
+    // Drop length of the ceiling-mount pole/bracket from the ceiling down to the lens.
+    const POLE_HEIGHT_M = 0.8;
+    // Current lens shift, as a fraction of half image width/height. h>0 = right, v>0 = up.
+    const shiftState = { h: 0, v: 0 };
+    // Geometry captured by each render*View() call, reused by that view's drag handler.
+    const vizGeom = { front: null, side: null, top: null };
+    // While dragging the projector, screen size changes with distance, which would otherwise make the
+    // auto-fit scale chase itself (distance cancels out of the position math). Freeze scale during the drag.
+    let duringProjectorDrag = false;
+
+    // Real lens shift ranges are limited by the lens's circular image circle: you can't have maximum
+    // horizontal and maximum vertical shift at the same time. Manufacturer diagrams depict the achievable
+    // (h, v) region as an octagon (see lensShiftOctagon), not an independent rectangle -- clamp dragging
+    // to lie within it, radially, so the draggable range exactly matches the drawn shape.
+    function clampShiftToSpec() {
+      const spec = getLensShift();
+      shiftState.h = Math.min(spec.hPlus, Math.max(spec.hMinus, shiftState.h));
+      shiftState.v = Math.min(spec.vPlus, Math.max(spec.vMinus, shiftState.v));
+      [shiftState.h, shiftState.v] = clampPointToPolygon(shiftState.h, shiftState.v, lensShiftOctagon(spec));
+    }
+
+    // A lens like the XP44ML add-on has no adjustable shift at all -- getLensShift() expresses its fixed,
+    // permanent optical offset using the same vPlus/vMinus fields as a real shift range, but with vPlus
+    // pinned equal to vMinus (a zero-width "range"), purely so it reuses the existing shift-rendering math.
+    // That's an implementation detail the readout shouldn't leak: relabel it "Offset (fixed)" rather than
+    // "Shift" whenever an axis has no actual range to drag within, so it isn't mistaken for something the
+    // user can adjust.
+    function updateShiftLabels() {
+      const fmt = v => (v > 0 ? '+' : '') + (v * 100).toFixed(0) + '%';
+      const spec = getLensShift();
+      document.getElementById('shift-h-text').textContent = spec.hPlus === spec.hMinus ? 'Horizontal Offset (fixed)' : 'Horizontal Shift';
+      document.getElementById('shift-v-text').textContent = spec.vPlus === spec.vMinus ? 'Vertical Offset (fixed)' : 'Vertical Shift';
+      document.getElementById('shift-h-label').textContent = fmt(shiftState.h);
+      document.getElementById('shift-v-label').textContent = fmt(shiftState.v);
+    }
+
+    function svgToViewBox(svg, clientX, clientY) {
+      const rect = svg.getBoundingClientRect();
+      const vb = svg.viewBox.baseVal;
+      return {
+        x: (clientX - rect.left) / rect.width * vb.width,
+        y: (clientY - rect.top) / rect.height * vb.height
+      };
+    }
+
+    // A body model (e.g. XP-A824U-W) can have several interchangeable lens options in `database`, each
+    // with its own throw-distance range that can legitimately overlap another lens's range -- so which
+    // one is actually mounted can't be reliably inferred from distance alone, and is instead the explicit
+    // #lens dropdown (see populateLensSelect()). Falls back to the model's first lens only if the dropdown
+    // hasn't been populated yet for some reason.
+    function getSelectedLensRow() {
+      const lenses = database.filter(l => l.model === modelSelect.value);
+      if (!lenses.length) return undefined;
+      return lenses.find(l => l.lens === lensSelect.value) || lenses[0];
+    }
+
+    // Returns the geometric (L2) lens-to-screen distance, which is what the visualizations actually need
+    // to draw the projection geometry and what the throw-ratio math (trWide/trTele) is defined against --
+    // not the L1 value the user types into the "Projection Distance" field for an XP44ML-equipped model.
+    function getVizDistance() {
+      const entered = parseFloat(document.getElementById('distance').value);
+      const row = getSelectedLensRow();
+      if (entered) {
+        return row ? getAdjustedDistance(entered, row.lens, true) : entered;
+      }
+      const imageW = getImageWidthInMeters();
+      if (row && isXP44MLLens(row.lens)) return getXP44MLL2FromWidth(imageW);
+      return row ? lensGetTRWide(row, imageW) * imageW : 3; // trWide*width is already an L2 distance.
+    }
+
+    // Dragging the projector changes the throw distance, which (via the selected lens's wide-zoom throw
+    // ratio) drives the image width/height/diagonal fields, and everything downstream of those (brightness,
+    // contrast, lens table) through the normal updateImageSize()/updateBrightness() pipeline.
+    // newDistL2 is geometric (L2), matching what getVizDistance() returns -- the drag delta is computed
+    // against that same convention. It's converted back to L1 only when writing to the user-facing field.
+    function setProjectionDistance(newDistL2) {
+      const row = getSelectedLensRow();
+      const lensName = row ? row.lens : '';
+      // distMinWide/distMaxWide/distMinTele/distMaxTele are specified as L1 distances, but newDistL2 (and
+      // the zoom-selection/width math below) work in L2 -- convert the limits to L2 once, up front.
+      const maxWideDist = row ? getAdjustedDistance(row.distMaxWide, lensName, true) : Infinity;
+      // distMinWide/distMaxWide and distMinTele/distMaxTele are two separate distance ranges -- one for
+      // each zoom extreme -- not one continuous range with a single throw ratio. Beyond the wide-zoom
+      // range, the lens is assumed zoomed toward tele to stay in spec. XP44ML uses an exact affine
+      // conversion. Other lenses use per-diagonal interpolated TR (one iteration: approximate width first,
+      // then refine TR, since TR variation over width is small).
+      const widthFromL2 = dist => {
+        if (isXP44MLLens(lensName)) return getXP44MLWidthFromL2(dist);
+        const isWide = dist <= maxWideDist;
+        const trFixed = isWide ? (row ? row.trWide : 1) : (row ? row.trTele : 1);
+        const wApprox = dist / trFixed;
+        const tr = row ? (isWide ? lensGetTRWide(row, wApprox) : lensGetTRTele(row, wApprox)) : trFixed;
+        return dist / tr;
+      };
+      // Clamp to the selected lens's overall throw distance range -- the projector can't be dragged closer
+      // than its wide-zoom minimum, or further than its tele-zoom maximum.
+      const minDist = row ? getAdjustedDistance(row.distMinWide, lensName, true) : 0.1;
+      const maxDist = row ? getAdjustedDistance(row.distMaxTele, lensName, true) : Infinity;
+      newDistL2 = Math.min(maxDist, Math.max(minDist, newDistL2));
+      // Also clamp to the tested/approved overall screen-size range for this model/lens -- narrower than
+      // the lens's own theoretical throw-distance range above, which otherwise lets the screen size drift
+      // out of whack at the extreme ends of a drag. Scaling distance by the diagonal ratio keeps the
+      // result exactly at the boundary (diagonal is proportional to distance for a fixed throw ratio/aspect).
+      const limit = row ? getScreenSizeLimit(modelSelect.value, row.lens) : null;
+      if (limit) {
+        const aspectRatio = getAspectRatio();
+        const widthM = widthFromL2(newDistL2);
+        const diagInches = widthM * Math.sqrt(1 + aspectRatio * aspectRatio) / 0.0254;
+        if (diagInches > limit.maxDiag) newDistL2 *= limit.maxDiag / diagInches;
+        else if (diagInches < limit.minDiag) newDistL2 *= limit.minDiag / diagInches;
+      }
+      const newWidthM = widthFromL2(newDistL2);
+      const isInches = document.getElementById('units').value === 'Inches';
+      const newDistL1 = getAdjustedDistance(newDistL2, row ? row.lens : '', false);
+      document.getElementById('distance').value = newDistL1.toFixed(2);
+      document.getElementById('width').value = (isInches ? newWidthM * 39.3701 : newWidthM).toFixed(3);
+      updateImageSize('width');
+    }
+
+    // Switching lens (or model) shouldn't leave a stale screen size left over from whatever lens was
+    // selected before -- e.g. the lens table's "distance needed for this screen size" readout would keep
+    // showing numbers for a screen size unrelated to the newly-picked lens's actual usable range.
+    // If a distance is entered, that's the authoritative value: just recompute the screen size from it
+    // for the new lens (clamped to what the new lens can actually do, same as dragging the projector).
+    // If no distance is entered, instead clamp whatever screen size is currently configured into the new
+    // lens's achievable width range, leaving it alone if it's already sane for the new lens.
+    function reconcileLensChange() {
+      const row = getSelectedLensRow();
+      if (!row) return;
+      const entered = parseFloat(document.getElementById('distance').value);
+      if (entered) {
+        setProjectionDistance(getAdjustedDistance(entered, row.lens, true));
+        return;
+      }
+      // distMinWide/distMaxTele are L1 distances -- convert to L2 before mapping to width, same as
+      // setProjectionDistance(). XP44ML uses the exact diagonal-based conversion (no constant ratio).
+      const minWidthL2 = getAdjustedDistance(row.distMinWide, row.lens, true);
+      const maxWidthL2 = getAdjustedDistance(row.distMaxTele, row.lens, true);
+      const minWidth = isXP44MLLens(row.lens) ? getXP44MLWidthFromL2(minWidthL2) : minWidthL2 / row.trTele;
+      const maxWidth = isXP44MLLens(row.lens) ? getXP44MLWidthFromL2(maxWidthL2) : maxWidthL2 / row.trWide;
+      let width = Math.min(maxWidth, Math.max(minWidth, getImageWidthInMeters()));
+      // Also clamp into the tested/approved overall screen-size range, same as setProjectionDistance().
+      const limit = getScreenSizeLimit(modelSelect.value, row.lens);
+      if (limit) {
+        const aspectRatio = getAspectRatio();
+        const diagFactor = Math.sqrt(1 + aspectRatio * aspectRatio) / 0.0254;
+        const diagInches = width * diagFactor;
+        if (diagInches > limit.maxDiag) width = limit.maxDiag / diagFactor;
+        else if (diagInches < limit.minDiag) width = limit.minDiag / diagFactor;
+      }
+      const isInches = document.getElementById('units').value === 'Inches';
+      document.getElementById('width').value = (isInches ? width * 39.3701 : width).toFixed(3);
+      updateImageSize('width');
+    }
+
+    function svgLine(x1, y1, x2, y2, attrs = '') {
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${attrs}/>`;
+    }
+
+    // The XP44ML add-on is a fixed ultra-short-throw lens, not an adjustable-shift one. Its permanent
+    // vertical offset (H1: the gap from the lens's own mounting reference to the image's near edge -- on
+    // a desktop mount that gap sits below the lens, with the whole image projecting upward above it) is
+    // computed exactly as the source workbook does it (XP-44ML sheet, cell AD20 and its per-model lookup
+    // table B29:O34), NOT as a simple function of throw distance:
+    //   diag16:10(inches) = width(mm) / 16 * sqrt(16^2 + 10^2) / 25.4   -- the diagonal this width would
+    //                                                                       have if paired with 16:10
+    //   H1 (mm) = 4.711 * diag16:10 + Hc + correction
+    // where Hc is looked up per projector-body family (157.48mm for A104U/A824U -- our XP44ML+XP02LK --
+    // vs 130.48mm for V731U/V801U/V711U -- our XP44ML+XP01LK), and "correction" accounts for the actual
+    // aspect ratio selected (the base formula above is implicitly 16:10; correction is exactly 0 at
+    // 16:10 and nonzero at 16:9/4:3):
+    //   correction (mm) = width(mm) * (10 - aspectHeightUnits) / (2 * aspectWidthUnits)
+    // Hanging the projector from the ceiling flips the offset direction: the image projects downward,
+    // offset below the (now upside-down) lens by that same H1 gap, even with zero lens shift dialed in.
+    function getXP44MLOffsetMeters(lensName) {
+      const Hc = lensName === 'XP44ML+XP02LK' ? 157.48 : 130.48;
+      const wMm = getImageWidthInMeters() * 1000;
+      const diag16_10Inches = wMm / 16 * Math.sqrt(16 * 16 + 10 * 10) / 25.4;
+      const baseMm = 4.711 * diag16_10Inches + Hc;
+      const [aspectW, aspectH] = document.getElementById('aspect').value.split(':').map(Number);
+      const correctionMm = wMm * (10 - aspectH) / (2 * aspectW);
+      return (baseMm + correctionMm) / 1000;
+    }
+
+    // Expressed as a fixed (non-adjustable) vPlus/vMinus pair in our existing shift-fraction convention
+    // (offset = fullHeight*fraction, baseline halfHeight from the axis -- see getLensShift()'s header
+    // comment) so it flows through the same shift-rendering code as every other lens, just with vPlus
+    // pinned equal to vMinus (a zero-width range = not draggable, and still applied after "Center" since
+    // clampShiftToSpec() re-clamps shiftState.v to it on every render).
+    function getXP44MLFixedVOffset() {
+      const row = getSelectedLensRow();
+      const h1Meters = getXP44MLOffsetMeters(row ? row.lens : '');
+      const h = getImageHeightInMeters();
+      const v = -(h1Meters / h + 0.5);
+      return v;
+    }
+
+    // L1/L2/H/H1/H2 as labeled in the XP-44ML reference diagram (L1 = gap from the main projector body
+    // to the 44ML attachment, L2 = attachment-to-screen distance, H = image height (the upper ray-to-ray
+    // span), H1 = the permanent vertical offset below the lens (the lower span, base to lens), and
+    // H2 = H + H1, the total drop from the top of the image to the projector's base/floor line.
+    function getXP44MLGeomValues() {
+      const row = getSelectedLensRow();
+      const L2 = getVizDistance();
+      const L1 = getAdjustedDistance(L2, row ? row.lens : '', false);
+      const H = getImageHeightInMeters();
+      const H1 = getXP44MLOffsetMeters(row ? row.lens : '');
+      const H2 = H + H1;
+      return { L1, L2, H, H1, H2 };
+    }
+
+    function renderXP44MLDiagram() {
+      const { L1, L2, H1, H2, H } = getXP44MLGeomValues();
+      document.getElementById('val-44ml-l1').textContent = L1.toFixed(2);
+      document.getElementById('val-44ml-l2').textContent = L2.toFixed(2);
+      document.getElementById('val-44ml-h1').textContent = H1.toFixed(2);
+      document.getElementById('val-44ml-h2').textContent = H2.toFixed(2);
+      document.getElementById('val-44ml-h').textContent = H.toFixed(2);
+
+      // Ceiling-mount version of the reference diagram. Mirroring the reference image's own layout (lens
+      // apex sitting ABOVE the projector's top, so the rays clear over the roofline) means that, flipped
+      // for a ceiling mount, the apex must sit BELOW the projector's bottom edge -- the projector body
+      // stays entirely up near the ceiling, and the lens hangs down past it, so nothing blocks the rays
+      // regardless of body size. The lens wedge is drawn flush against the projector's left face (no gap),
+      // matching the reference image. Labels only -- no computed values baked into the SVG itself; those
+      // live in the table beside it.
+      const ceilingY = 90;                  // dashed ceiling/mount reference line
+      const footH = 16;
+      // Smaller projector body so it has no chance of overlapping the rays.
+      const projLeft = 300, projRight = 400, projTop = ceilingY + footH, projBottom = projTop + 50;
+      // 44ML as a tilted cone/frustum: NARROW end flush against the MIDDLE of the projector's left face.
+      // Its top edge (the side facing the ceiling) is flat/horizontal -- parallel to the ceiling line --
+      // and only the bottom edge tapers downward as it widens away from the projector, so the whole
+      // shape tilts without tipping its "roof" out of parallel.
+      const narrowCenterY = (projTop + projBottom) / 2;
+      const narrowTopY = narrowCenterY - 8, narrowBotY = narrowCenterY + 8;
+      const wideX = projLeft - 90;
+      const wideTopY = narrowTopY;               // flat top edge, flush/parallel with the ceiling line
+      const wideBotY = narrowCenterY + 30;        // only the bottom edge tapers down and out
+      // Ray origin: a point on the bottom (tapered) edge's own skin, slid a bit down the cone's length
+      // from the wide-end tip -- toward the body -- rather than off the shape entirely.
+      const rayT = 0.15;
+      const rayX = wideX + rayT * (projLeft - wideX);
+      const rayY = wideBotY + rayT * (narrowBotY - wideBotY);
+      const midY = 260;                     // H2/H1 boundary on the screen plane (near ray)
+      const farY = 380;                     // bottom of image (far ray)
+      const screenX = 540;
+      // L-bracket: a true L -- the long leg crosses the near (left) mounting foot, the short leg drops
+      // down to support the lens cone.
+      const nearFootX = projLeft + 10;
+      const crossY = ceilingY + footH / 2;
+      const lensSupportX = projLeft - 15;
+
+      const svg = `
+        <line x1="0" y1="${ceilingY}" x2="${screenX}" y2="${ceilingY}" stroke="#999" stroke-dasharray="4 3"/>
+        <line x1="${screenX}" y1="${ceilingY}" x2="${screenX}" y2="${farY}" stroke="#1e40af" stroke-width="2"/>
+
+        <!-- 44ML lens: tilted cone/frustum, narrow end flush against the middle of the projector, flat
+             top edge parallel to the ceiling, tapering down and out on the bottom edge only -->
+        <polygon points="${projLeft},${narrowTopY} ${wideX},${wideTopY} ${wideX},${wideBotY} ${projLeft},${narrowBotY}" fill="#cbd5e1" stroke="#334155" stroke-width="1.5"/>
+        <text x="${(projLeft + wideX) / 2}" y="${wideTopY - 8}" font-size="12" font-weight="bold" text-anchor="middle">44ML</text>
+
+        <!-- light rays fanning downward from the wide end's bottom-side skin, to the screen plane,
+             clearing entirely below the projector body -->
+        <line x1="${rayX}" y1="${rayY}" x2="${screenX}" y2="${farY}" stroke="#1e293b" stroke-width="1.2"/>
+        <line x1="${rayX}" y1="${rayY}" x2="${screenX}" y2="${midY}" stroke="#1e293b" stroke-width="1.2"/>
+
+        <!-- L-shaped support bracket: long leg crosses the near mounting foot, short leg drops down to
+             support the lens cone -->
+        <path d="M ${nearFootX + 60},${crossY} L ${lensSupportX},${crossY} L ${lensSupportX},${narrowTopY}" fill="none" stroke="#111827" stroke-width="6" stroke-linecap="butt"/>
+
+        <!-- projector body, kept entirely up near the ceiling with its (white) mounting feet against it -->
+        <rect x="${projLeft}" y="${projTop}" width="${projRight - projLeft}" height="${projBottom - projTop}" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+        <text x="${(projLeft + projRight) / 2}" y="${(projTop + projBottom) / 2 + 5}" font-size="12" font-weight="bold" text-anchor="middle">Projector</text>
+        <rect x="${nearFootX}" y="${ceilingY}" width="12" height="${footH}" fill="#ffffff" stroke="#334155" stroke-width="1.2"/>
+        <rect x="${projRight - 22}" y="${ceilingY}" width="12" height="${footH}" fill="#ffffff" stroke="#334155" stroke-width="1.2"/>
+
+        <!-- L1 (screen to the back of the projector body) / L2 (screen to the line where the rays start) -->
+        <line x1="${projRight}" y1="${ceilingY - 20}" x2="${screenX}" y2="${ceilingY - 20}" stroke="#0891b2" stroke-width="1.5" marker-start="url(#arrow44b)" marker-end="url(#arrow44b)"/>
+        <text x="${(projRight + screenX) / 2}" y="${ceilingY - 28}" font-size="12" fill="#0891b2" text-anchor="middle">L1</text>
+        <line x1="${rayX}" y1="${ceilingY - 50}" x2="${screenX}" y2="${ceilingY - 50}" stroke="#0369a1" stroke-width="1.5" marker-start="url(#arrow44)" marker-end="url(#arrow44)"/>
+        <text x="${(rayX + screenX) / 2}" y="${ceilingY - 58}" font-size="12" fill="#0369a1" text-anchor="middle">L2</text>
+
+        <!-- H1 (offset) / H (image height) / H2 (total = H + H1) brackets along the screen plane -->
+        <line x1="${screenX + 25}" y1="${ceilingY}" x2="${screenX + 25}" y2="${midY}" stroke="#b45309" stroke-width="1.5" marker-start="url(#arrow44d)" marker-end="url(#arrow44d)"/>
+        <text x="${screenX + 38}" y="${(ceilingY + midY) / 2 + 4}" font-size="12" fill="#b45309">H1</text>
+        <line x1="${screenX + 45}" y1="${midY}" x2="${screenX + 45}" y2="${farY}" stroke="#15803d" stroke-width="1.5" marker-start="url(#arrow44c)" marker-end="url(#arrow44c)"/>
+        <text x="${screenX + 58}" y="${(midY + farY) / 2 + 4}" font-size="12" fill="#15803d">H</text>
+        <line x1="${screenX + 65}" y1="${ceilingY}" x2="${screenX + 65}" y2="${farY}" stroke="#475569" stroke-width="1.5" marker-start="url(#arrow44e)" marker-end="url(#arrow44e)"/>
+        <text x="${screenX + 78}" y="${(ceilingY + farY) / 2 + 4}" font-size="12" fill="#475569">H2</text>
+
+        <defs>
+          <marker id="arrow44" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#0369a1"/></marker>
+          <marker id="arrow44b" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#0891b2"/></marker>
+          <marker id="arrow44c" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#15803d"/></marker>
+          <marker id="arrow44d" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#b45309"/></marker>
+          <marker id="arrow44e" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#475569"/></marker>
+        </defs>
+      `;
+      document.getElementById('svg-44ml').innerHTML = svg;
+    }
+
+    // Lens shift range, for a ceiling mount, as a fraction of half image height/width.
+    // Source: 20260615_RD_Throw Distance_All Model_r2-2.xlsx, per-model-family sheets, the
+    // "Image Option" block (row52-53: V+_North/V-_South/V+_Ne_Nw/V-_Se_Sw/H+_East/H-_West/H+_Ne_Se/H-_Nw_Sw,
+    // Region=Other). That row is already orientation-corrected per each sheet's Orientation field
+    // (Desktop vs Celling), so it's used as-is -- no manual swap/negate needed here.
+    //
+    // The achievable (h, v) shift region is NOT an independent rectangle, and not a simple diamond either:
+    // manufacturers depict it as an octagon. vPlus/vMinus/hPlus/hMinus are the maxima reached only on the
+    // centerline (h=0 or v=0); vNeNw/vSeSw ("_Ne_Nw"/"_Se_Sw") are the V reach of the flat right/left edges
+    // (shared by both top and bottom corners on that side); hNeSe/hNwSw ("_Ne_Se"/"_Nw_Sw") are the H reach
+    // of the flat top/bottom edges (shared by both left and right corners on that side).
+    function getLensShift() {
+      const model = modelSelect.value;
+      const row = getSelectedLensRow();
+      const lens = row ? row.lens : '';
+      if (model.startsWith('XP-E501U')) return { vPlus: 0, vMinus: 0, hPlus: 0, hMinus: 0, vNeNw: 0, vSeSw: 0, hNeSe: 0, hNwSw: 0 };
+      // sheet10
+      if (model.startsWith('XP-P621U') || model.startsWith('XP-P701U')) return { vPlus: 0, vMinus: -0.44, hPlus: 0.2, hMinus: -0.2, vNeNw: 0, vSeSw: 0, hNeSe: 0, hNwSw: 0 };
+      // sheet11
+      if (model.startsWith('XP-P601Q') || model.startsWith('XP-P721Q')) return { vPlus: 0.55, vMinus: -0.55, hPlus: 0.25, hMinus: -0.25, vNeNw: 0.15, vSeSw: -0.15, hNeSe: 0.05, hNwSw: -0.05 };
+      if (lens === 'XP44ML+XP01LK' || lens === 'XP44ML+XP02LK') {
+        const v = getXP44MLFixedVOffset();
+        return { vPlus: v, vMinus: v, hPlus: 0, hMinus: 0, vNeNw: v, vSeSw: v, hNeSe: 0, hNwSw: 0 };
+      }
+      // sheet8
+      if (['XP40ZL', 'XP41ZL', 'XP43ZL', 'XP50ZL'].includes(lens)) return { vPlus: 0.1, vMinus: -0.5, hPlus: 0.2, hMinus: -0.2, vNeNw: 0, vSeSw: 0, hNeSe: 0.1, hNwSw: -0.1 };
+      // sheet7
+      if (['XP51ZL', 'XP52ZL', 'XP53ZL', 'XP54ZL', 'XP55ZL', 'XP56ZL'].includes(lens)) return { vPlus: 0.5, vMinus: -0.5, hPlus: 0.2, hMinus: -0.2, vNeNw: 0, vSeSw: 0, hNeSe: 0, hNwSw: 0 };
+      // sheet6 (XP-57UL/XP-58/59/60/61/62 ZL family)
+      if (['XP57ZL', 'XP58ZL', 'XP59ZL', 'XP60ZL', 'XP61ZL', 'XP62ZL'].includes(lens)) return { vPlus: 0.5, vMinus: -0.5, hPlus: 0.2, hMinus: -0.2, vNeNw: 0.1, vSeSw: -0.1, hNeSe: 0, hNwSw: 0 };
+      return { vPlus: 0, vMinus: 0, hPlus: 0, hMinus: 0, vNeNw: 0, vSeSw: 0, hNeSe: 0, hNwSw: 0 };
+    }
+
+    // The 8 vertices of the lens-shift-range octagon, in shift-fraction space (not pixels), going
+    // clockwise from the top edge's left end. Verified directly against the source spreadsheet's own
+    // octagon construction (each model sheet, the "Sele.Rng" quadrant table at A60:L76): the flat right
+    // edge sits at h=hPlus spanning v from vNeNw down to vSeSw, and the flat left edge at h=hMinus
+    // spanning the same v range; the flat top edge sits at v=vPlus spanning h from hNwSw to hNeSe, and
+    // the flat bottom edge at v=vMinus spanning the same h range. Even when a lens's vNeNw/vSeSw are
+    // both exactly 0 (e.g. XP-40/41/43/50ZL), the right/left edges don't collapse to a point: one end is
+    // pinned to +vPlus's sign convention and the other to vMinus's, which differ in pixel space once the
+    // image's own half-height baseline is added back in (see renderFrontView) -- so no separate "always
+    // show an octagon" fallback is needed here.
+    // Each vertex also carries which sign-category (+1 or -1) its h and v fraction belongs to (hPlus/hNeSe
+    // are "+"; hMinus/hNwSw are "-"; same idea for v) -- renderFrontView() needs that explicitly, since it
+    // can't be reliably recovered from the fraction's own numeric sign once it's exactly 0.
+    function lensShiftOctagon(spec) {
+      return [
+        [spec.hNwSw, spec.vPlus, -1, 1], [spec.hNeSe, spec.vPlus, 1, 1],
+        [spec.hPlus, spec.vNeNw, 1, 1], [spec.hPlus, spec.vSeSw, 1, -1],
+        [spec.hNeSe, spec.vMinus, 1, -1], [spec.hNwSw, spec.vMinus, -1, -1],
+        [spec.hMinus, spec.vSeSw, -1, -1], [spec.hMinus, spec.vNeNw, -1, 1]
+      ];
+    }
+
+    // Radially scale (h, v) down (toward the origin) just enough to land inside the given star-shaped
+    // (around the origin) polygon, leaving it unchanged if it's already inside.
+    function clampPointToPolygon(h, v, poly) {
+      if (h === 0 && v === 0) return [0, 0];
+      let tBoundary = Infinity;
+      for (let i = 0; i < poly.length; i++) {
+        const [ax, ay] = poly[i], [bx, by] = poly[(i + 1) % poly.length];
+        const dx = bx - ax, dy = by - ay;
+        const det = dx * v - dy * h;
+        if (Math.abs(det) < 1e-12) continue;
+        const t = (dx * ay - dy * ax) / det;
+        const s = (h * ay - v * ax) / det;
+        if (s >= -1e-9 && s <= 1 + 1e-9 && t > 1e-9 && t < tBoundary) tBoundary = t;
+      }
+      const scale = Math.min(1, isFinite(tBoundary) ? tBoundary : 1);
+      return [h * scale, v * scale];
+    }
+
+    // Small ceiling-mounted projector box icon, centered at (cx, cy), hanging from a ceiling line above it.
+    // Pass an id to make the icon draggable (used to move the projector and change projection distance).
+    function svgProjectorIcon(cx, cy, id = null) {
+      const bw = 28, bh = 16;
+      const inner = `
+        <line x1="${cx}" y1="${cy - bh / 2}" x2="${cx}" y2="${cy - bh / 2 - 10}" stroke="#1e40af" stroke-width="2"/>
+        <rect x="${cx - bw / 2}" y="${cy - bh / 2}" width="${bw}" height="${bh}" rx="3" fill="#1e40af" stroke="#0C3C6B" stroke-width="1.5"/>
+        <circle cx="${cx}" cy="${cy + bh / 2 - 3}" r="3" fill="#0C3C6B"/>
+      `;
+      return id ? `<g id="${id}" class="shift-draggable">${inner}</g>` : inner;
+    }
+
+    function renderFrontView() {
+      clampShiftToSpec();
+      const w = getImageWidthInMeters(), h = getImageHeightInMeters();
+      const halfW = w / 2, halfH = h / 2;
+      const spec = getLensShift();
+      // Padding around the neutral (0-shift) image position, sized from the lens's shift range.
+      // The source spec sheet's own geometry (each model sheet's "Sele.Rng" quadrant table, A60:L76)
+      // confirms shift fractions are multiplied by the image's FULL width/height, not half -- e.g. its
+      // octagon vertex formula for the right edge is "halfWidth + fullWidth*hPlus", not "halfWidth*(1+hPlus)".
+      const padL = w * Math.abs(spec.hMinus), padR = w * spec.hPlus;
+      const padT = h * spec.vPlus, padB = h * Math.abs(spec.vMinus);
+      const totalW = w + padL + padR;
+      // Vertical extent above the lens axis is whichever reaches further: the pole (ceiling), or the image's own
+      // half-height plus any upward shift padding (the image top is always at least halfH above the axis).
+      const topExtent = Math.max(POLE_HEIGHT_M, halfH + padT);
+      const totalH = topExtent + h / 2 + padB;
+
+      const pad = 60, vbW = 600, vbH = 400;
+      const scale = Math.min((vbW - pad * 2) / totalW, (vbH - pad * 2) / totalH);
+      const sw = w * scale, sh = h * scale;
+      const rangeX = (vbW - totalW * scale) / 2;
+      const lensAxisX = rangeX + padL * scale + sw / 2;
+      const lensAxisY = pad + topExtent * scale;
+      const ceilingY = lensAxisY - POLE_HEIGHT_M * scale;
+      const rangeY = lensAxisY - (halfH + padT) * scale;
+      const x = lensAxisX + w * shiftState.h * scale - sw / 2;
+      const y = lensAxisY - h * shiftState.v * scale - sh / 2;
+      const hasShift = (padL + padR + padT + padB) > 0;
+      vizGeom.front = { rangeX, rangeY, scale, halfW, halfH, w, h, spec };
+      // Real lens shift is limited by the lens's circular image circle, not an independent rectangle --
+      // you can't have max horizontal and max vertical shift simultaneously. The source spec sheet depicts
+      // the achievable region as an octagon (see lensShiftOctagon() for the vertex layout, verified against
+      // the sheet's own "Sele.Rng" formulas). Each vertex's fraction-space coordinate (hf, vf) converts to a
+      // pixel offset from the lens axis the same way the sheet computes it: half the image's own dimension
+      // (signed to the matching corner) plus the full dimension times the shift fraction -- not half the
+      // dimension times the fraction, which is what made flat edges collapse to a point when a lens's
+      // vNeNw/vSeSw (or hNeSe/hNwSw) happened to be exactly 0.
+      const fx = n => n.toFixed(2);
+      const vertexOffset = (hf, vf, hSign, vSign) => [
+        (halfW * hSign + w * hf) * scale,
+        -(halfH * vSign + h * vf) * scale
+      ];
+      const octagon = lensShiftOctagon(spec).map(([hf, vf, hSign, vSign]) => vertexOffset(hf, vf, hSign, vSign));
+      const shiftRangePath = octagon
+        .map(([dx, dy], idx) => `${idx === 0 ? 'M' : 'L'} ${fx(lensAxisX + dx)} ${fx(lensAxisY + dy)}`)
+        .concat('Z')
+        .join(' ');
+      const svg = `
+        ${svgLine(pad - 20, ceilingY, vbW - pad + 20, ceilingY, 'stroke="#999" stroke-width="1"')}
+        ${hasShift ? `<path d="${shiftRangePath}" fill="#bfdbfe" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5,3"/>` : ''}
+        <defs>
+          <radialGradient id="lightGlow" cx="50%" cy="50%" r="65%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect x="${x}" y="${y}" width="${sw}" height="${sh}" fill="#fef08a" stroke="#0C3C6B" stroke-width="2" class="${hasShift ? 'shift-draggable' : ''}" id="front-image-rect"/>
+        <rect x="${x}" y="${y}" width="${sw}" height="${sh}" fill="url(#lightGlow)" style="pointer-events:none;"/>
+        ${svgLine(x, y + sh + 15, x + sw, y + sh + 15, 'stroke="#0C3C6B" stroke-width="1.5"')}
+        <text x="${x + sw / 2}" y="${y + sh + 32}" text-anchor="middle" class="viz-dim">${w.toFixed(2)} m</text>
+        ${svgLine(x - 15, y, x - 15, y + sh, 'stroke="#0C3C6B" stroke-width="1.5"')}
+        <text x="${x - 22}" y="${y + sh / 2}" text-anchor="middle" class="viz-dim" transform="rotate(-90, ${x - 22}, ${y + sh / 2})">${h.toFixed(2)} m</text>
+        ${svgLine(lensAxisX, ceilingY, lensAxisX, lensAxisY, 'stroke="#1e40af" stroke-width="2"')}
+        <text x="${lensAxisX + 8}" y="${(ceilingY + lensAxisY) / 2}" class="viz-dim">${POLE_HEIGHT_M.toFixed(1)} m pole</text>
+        ${svgProjectorIcon(lensAxisX, lensAxisY)}
+        <text x="${lensAxisX}" y="${lensAxisY + 26}" text-anchor="middle" class="viz-label">Projector (ceiling-mounted)</text>
+        ${hasShift ? `<rect x="${vbW - pad - 16}" y="12" width="14" height="14" fill="#bfdbfe" stroke="#2563eb"/><text x="${vbW - pad - 24}" y="23" text-anchor="end" class="viz-label">Lens shift range</text>` : ''}
+      `;
+      document.getElementById('svg-front').innerHTML = svg;
+      updateShiftLabels();
+    }
+
+    function renderSideView() {
+      clampShiftToSpec();
+      const h = getImageHeightInMeters();
+      const dist = getVizDistance();
+      const pad = 60, vbW = 600, vbH = 400;
+      const spec = getLensShift();
+      const vRange = Math.max(spec.vPlus, Math.abs(spec.vMinus), 0.01);
+      // Scale is driven only by screen height, never by distance. While the projector is being dragged,
+      // screen height itself changes with distance, so the scale is frozen at its pre-drag value instead
+      // of being recalculated every frame -- otherwise distance would mathematically cancel out of the
+      // projector's pixel position (and the pole would appear to grow/shrink as the scale chased itself).
+      // The shift range reserves a full image-height's worth of extra room on each side (not half --
+      // see renderFrontView's comment on the source spec sheet's own halfDim+fullDim*fraction formula),
+      // so the total span needed is the pole, plus the image, plus vRange reserved on top AND bottom.
+      const scale = (duringProjectorDrag && vizGeom.side) ? vizGeom.side.scale : (vbH - pad * 2) / (POLE_HEIGHT_M + h * (1 + 2 * vRange));
+      const sh = h * scale;
+      // Screen position is fixed; the projector moves left/right as distance changes. Positioned by L1
+      // (the real-world gap from the projector body to the screen wall), not L2 (the 44ML attachment's
+      // lens-to-screen distance) -- for every lens but XP44ML those are identical anyway (offset 0), but
+      // for XP44ML this is what lets the icon correctly land on/over the screen once L1 goes negative
+      // (the body recessed behind the wall plane), rather than showing a separate phantom second icon.
+      const screenX = vbW - pad;
+      const lensRow = getSelectedLensRow();
+      const l1 = lensRow ? getAdjustedDistance(dist, lensRow.lens, false) : dist;
+      const lensX = Math.min(screenX, Math.max(20, screenX - l1 * scale));
+      const poleLenPx = POLE_HEIGHT_M * scale;
+      // Zero-shift baseline: the lens optical axis is level with the screen's vertical center.
+      // This vertical anchor is also frozen during a projector drag (screen height changes with distance,
+      // which would otherwise drag the whole diagram up/down as the screen grows/shrinks around it).
+      const lensY = (duringProjectorDrag && vizGeom.side) ? vizGeom.side.lensY : pad + poleLenPx + sh * vRange + sh / 2;
+      // The pole's true-to-scale pixel length can shrink to almost nothing for very large screens (since
+      // scale shrinks to fit them on canvas), letting the fixed-size projector icon visually poke above
+      // the ceiling line. Floor the *visual* pole length -- used only for layout here, not for any
+      // physical calculation -- so the icon and its pole always stay visibly below the ceiling.
+      const ceilingY = lensY - Math.max(poleLenPx, 28);
+      const screenCenterY = lensY - shiftState.v * sh;
+      const screenTopY = screenCenterY - sh / 2, screenBottomY = screenCenterY + sh / 2;
+      vizGeom.side = { lensY, sh, spec, scale };
+      const svg = `
+        ${svgLine(20, ceilingY, vbW - 20, ceilingY, 'stroke="#999" stroke-width="1"')}
+        <polygon points="${lensX},${lensY} ${screenX},${screenTopY} ${screenX},${screenBottomY}" fill="#fde68a" fill-opacity="0.45" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+        <rect x="${screenX - 4}" y="${screenTopY}" width="8" height="${sh}" fill="#e0f2fe" stroke="#0C3C6B" stroke-width="2" class="shift-draggable" id="side-screen-rect"/>
+        ${svgLine(lensX, ceilingY, lensX, lensY, 'stroke="#1e40af" stroke-width="2"')}
+        <text x="${lensX}" y="${ceilingY - 10}" text-anchor="middle" class="viz-dim">${POLE_HEIGHT_M.toFixed(1)} m pole</text>
+        ${svgProjectorIcon(lensX, lensY - 8, 'side-projector-icon')}
+        <text x="${lensX}" y="${lensY + 30}" text-anchor="middle" class="viz-label">Projector</text>
+        <text x="${screenX}" y="${screenBottomY + 20}" text-anchor="middle" class="viz-label">Screen</text>
+        ${svgLine(lensX, lensY, screenX, screenCenterY, 'stroke="#0C3C6B" stroke-width="1.5" stroke-dasharray="4,3"')}
+        <text x="${(lensX + screenX) / 2}" y="${lensY - 10}" text-anchor="middle" class="viz-dim">${l1.toFixed(2)} m</text>
+        <text x="${screenX + 18}" y="${screenCenterY}" class="viz-dim">${h.toFixed(2)} m</text>
+      `;
+      document.getElementById('svg-side').innerHTML = svg;
+      updateShiftLabels();
+    }
+
+    function renderTopView() {
+      clampShiftToSpec();
+      const w = getImageWidthInMeters();
+      const dist = getVizDistance();
+      const pad = 60, vbW = 600, vbH = 400;
+      const spec = getLensShift();
+      const hRange = Math.max(spec.hPlus, Math.abs(spec.hMinus), 0.01);
+      // Scale is driven only by screen width, never by distance. While the projector is being dragged,
+      // screen width itself changes with distance, so the scale is frozen at its pre-drag value instead
+      // of being recalculated every frame -- otherwise distance would mathematically cancel out of the
+      // projector's pixel position (since width = distance / throw ratio, a constant ratio).
+      // hRange is reserved on both sides (see renderSideView's matching comment), so 2*hRange total.
+      const scale = (duringProjectorDrag && vizGeom.top) ? vizGeom.top.scale : (vbH - pad * 2) / (w * (1 + 2 * hRange));
+      const sw = w * scale;
+      // Screen position is fixed; the projector moves left/right as distance changes.
+      // Clamped so it stays visible on canvas even if dragged to a very large distance.
+      const centerY = vbH / 2, screenX = vbW - pad;
+      const projX = Math.max(20, screenX - dist * scale);
+      const screenCenterY = centerY - shiftState.h * sw;
+      vizGeom.top = { centerY, sw, spec, scale };
+      const svg = `
+        <polygon points="${projX},${centerY} ${screenX},${screenCenterY - sw / 2} ${screenX},${screenCenterY + sw / 2}" fill="#fde68a" fill-opacity="0.45" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+        <rect x="${screenX - 4}" y="${screenCenterY - sw / 2}" width="8" height="${sw}" fill="#e0f2fe" stroke="#0C3C6B" stroke-width="2" class="shift-draggable" id="top-screen-rect"/>
+        <g id="top-projector-icon" class="shift-draggable">
+          <rect x="${projX - 14}" y="${centerY - 8}" width="28" height="16" rx="3" fill="#1e40af" stroke="#0C3C6B" stroke-width="1.5"/>
+        </g>
+        <text x="${projX}" y="${centerY + 25}" text-anchor="middle" class="viz-label">Projector (ceiling-mounted)</text>
+        <text x="${screenX}" y="${screenCenterY - sw / 2 - 15}" text-anchor="middle" class="viz-label">Screen</text>
+        ${svgLine(projX, centerY, screenX, screenCenterY, 'stroke="#0C3C6B" stroke-width="1.5" stroke-dasharray="4,3"')}
+        <text x="${(projX + screenX) / 2}" y="${centerY - 10}" text-anchor="middle" class="viz-dim">${dist.toFixed(2)} m</text>
+        <text x="${screenX + 18}" y="${screenCenterY}" class="viz-dim">${w.toFixed(2)} m</text>
+      `;
+      document.getElementById('svg-top').innerHTML = svg;
+      updateShiftLabels();
+    }
+
+    function makeTextSprite(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#0C3C6B';
+      ctx.font = 'bold 32px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      sprite.scale.set(0.6, 0.15, 1);
+      return sprite;
+    }
+
+    function initViz3d() {
+      const container = document.getElementById('viz-3d-canvas');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf4f6f9);
+      const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.01, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      dirLight.position.set(2, 4, 2);
+      scene.add(dirLight);
+
+      const ceilingMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(20, 20),
+        new THREE.MeshStandardMaterial({ color: 0xdddddd, side: THREE.DoubleSide, transparent: true, opacity: 0.6 })
+      );
+      ceilingMesh.rotation.x = Math.PI / 2;
+      scene.add(ceilingMesh);
+      const ceilingGrid = new THREE.GridHelper(20, 20, 0xbbbbbb, 0xcccccc);
+      scene.add(ceilingGrid);
+
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0xe0f2fe, side: THREE.DoubleSide });
+      const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), screenMat);
+      scene.add(screenMesh);
+
+      const screenEdges = new THREE.LineSegments(new THREE.EdgesGeometry(screenMesh.geometry), new THREE.LineBasicMaterial({ color: 0x0C3C6B }));
+      screenMesh.add(screenEdges);
+
+      // Projector box mounted upside-down on the ceiling (rotated 180° about X).
+      const projMesh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.2), new THREE.MeshStandardMaterial({ color: 0x1e40af }));
+      projMesh.rotation.x = Math.PI;
+      scene.add(projMesh);
+
+      // Dragging the screen adjusts lens shift (h/v); dragging elsewhere orbits the camera as usual.
+      // (Throw distance is adjustable in Side/Top View only -- true depth-axis dragging in 3D would need
+      // camera-relative unprojection, which is less precise than the 2D views' direct manipulation.)
+      const raycaster = new THREE.Raycaster();
+      const pointerNDC = new THREE.Vector2();
+      let dragging3d = false, lastPt = null;
+      function toNDC(e) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointerNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointerNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      }
+      renderer.domElement.addEventListener('pointerdown', (e) => {
+        toNDC(e);
+        raycaster.setFromCamera(pointerNDC, camera);
+        if (!raycaster.intersectObject(screenMesh).length) return;
+        dragging3d = true;
+        controls.enabled = false;
+        lastPt = { x: e.clientX, y: e.clientY };
+        renderer.domElement.setPointerCapture(e.pointerId);
+      });
+      renderer.domElement.addEventListener('pointermove', (e) => {
+        if (!dragging3d) return;
+        const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
+        lastPt = { x: e.clientX, y: e.clientY };
+        const rect = renderer.domElement.getBoundingClientRect();
+        shiftState.h += (dx / rect.width) * 2;
+        shiftState.v += -(dy / rect.height) * 2;
+        clampShiftToSpec();
+        renderViz3d();
+      });
+      const end3dDrag = () => { dragging3d = false; controls.enabled = true; };
+      renderer.domElement.addEventListener('pointerup', end3dDrag);
+      renderer.domElement.addEventListener('pointercancel', end3dDrag);
+
+      const mountLine = new THREE.Line(
+        new THREE.BufferGeometry(),
+        new THREE.LineBasicMaterial({ color: 0x1e40af })
+      );
+      scene.add(mountLine);
+
+      const poleLabel = makeTextSprite(`${POLE_HEIGHT_M.toFixed(1)} m pole`);
+      scene.add(poleLabel);
+
+      const throwLineGeom = new THREE.BufferGeometry();
+      const throwLine = new THREE.Line(throwLineGeom, new THREE.LineDashedMaterial({ color: 0x0C3C6B, dashSize: 0.1, gapSize: 0.05 }));
+      scene.add(throwLine);
+
+      // Light cone: pyramid from the projector lens to the four screen corners.
+      const lightCone = new THREE.Mesh(
+        new THREE.BufferGeometry(),
+        new THREE.MeshBasicMaterial({ color: 0xfde68a, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false })
+      );
+      scene.add(lightCone);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        if (document.getElementById('viz-3d').style.display === 'none') return;
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      return { scene, camera, renderer, controls, screenMesh, projMesh, throwLine, ceilingMesh, ceilingGrid, mountLine, lightCone, poleLabel };
+    }
+
+    function renderViz3d() {
+      const container = document.getElementById('viz-3d-canvas');
+      if (typeof THREE === 'undefined' || !THREE.OrbitControls) {
+        container.innerHTML = '<p class="note">Loading 3D engine…</p>';
+        setTimeout(renderViz3d, 200);
+        return;
+      }
+      try {
+        if (!viz3d) {
+          container.innerHTML = '';
+          viz3d = initViz3d();
+        }
+      } catch (err) {
+        container.innerHTML = `<p class="note" style="color:red;">3D View failed to load: ${err.message}</p>`;
+        console.error('3D View init error:', err);
+        return;
+      }
+      clampShiftToSpec();
+      const w = getImageWidthInMeters(), h = getImageHeightInMeters();
+      const dist = getVizDistance();
+
+      // Zero-shift baseline: the lens optical axis is level with the screen's vertical center.
+      // The ceiling is POLE_HEIGHT_M above the lens (the mount pole/bracket drop), independent of screen height.
+      // The screen stays at a fixed depth (SCREEN_Z); the projector moves along Z as throw distance changes.
+      const SCREEN_Z = -6;
+      const projY = h / 2;
+      const ceilingY = projY + POLE_HEIGHT_M;
+      const projZ = SCREEN_Z + dist;
+      const screenCx = shiftState.h * w;
+      const screenCy = h / 2 + shiftState.v * h;
+
+      viz3d.screenMesh.geometry.dispose();
+      viz3d.screenMesh.geometry = new THREE.PlaneGeometry(w, h);
+      viz3d.screenMesh.children.forEach(c => c.geometry.dispose());
+      viz3d.screenMesh.remove(...viz3d.screenMesh.children);
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(viz3d.screenMesh.geometry), new THREE.LineBasicMaterial({ color: 0x0C3C6B }));
+      viz3d.screenMesh.add(edges);
+      viz3d.screenMesh.position.set(screenCx, screenCy, SCREEN_Z);
+
+      // The ceiling needs to span from the projector's pole all the way to the screen, plus margin --
+      // the old fixed 20x20 plane centered at the origin stopped covering the projector once it was
+      // dragged far enough away (a long throw distance pushes projZ well past the plane's footprint),
+      // which is why it looked "chopped off". Resize and recenter it to the current projector-screen span.
+      const ceilingSpan = Math.max(dist + 6, 12);
+      const ceilingWidth = Math.max(w * 2, 8);
+      const ceilingCenterZ = (projZ + SCREEN_Z) / 2;
+      viz3d.ceilingMesh.geometry.dispose();
+      viz3d.ceilingMesh.geometry = new THREE.PlaneGeometry(ceilingWidth, ceilingSpan);
+      viz3d.ceilingMesh.position.set(0, ceilingY, ceilingCenterZ);
+      viz3d.scene.remove(viz3d.ceilingGrid);
+      viz3d.ceilingGrid.geometry.dispose();
+      viz3d.ceilingGrid = new THREE.GridHelper(Math.max(ceilingWidth, ceilingSpan), Math.max(4, Math.round(ceilingSpan / 2)), 0xbbbbbb, 0xcccccc);
+      viz3d.ceilingGrid.position.set(0, ceilingY, ceilingCenterZ);
+      viz3d.scene.add(viz3d.ceilingGrid);
+
+      // The projector box is real-world-sized (0.25m), which becomes nearly invisible once the scene
+      // spans tens of meters at a long throw distance -- scale it up with distance (like the 2D views'
+      // fixed-size icon, it's already not strictly true-to-scale) so it stays visible and prominent.
+      viz3d.projMesh.scale.setScalar(Math.max(1, Math.min(dist / 8, 6)));
+      viz3d.projMesh.position.set(0, projY, projZ);
+      viz3d.poleLabel.position.set(0.4, (projY + ceilingY) / 2, projZ);
+
+      viz3d.mountLine.geometry.dispose();
+      viz3d.mountLine.geometry.setFromPoints([new THREE.Vector3(0, ceilingY, projZ), new THREE.Vector3(0, projY + 0.05, projZ)]);
+
+      viz3d.throwLine.geometry.dispose();
+      const points = [new THREE.Vector3(0, projY, projZ), new THREE.Vector3(screenCx, screenCy, SCREEN_Z)];
+      viz3d.throwLine.geometry.setFromPoints(points);
+      viz3d.throwLine.computeLineDistances();
+
+      // Light cone: 4 triangular faces from the projector lens to each edge of the (shifted) screen.
+      const apex = new THREE.Vector3(0, projY, projZ);
+      const corners = [
+        new THREE.Vector3(screenCx - w / 2, screenCy - h / 2, SCREEN_Z),
+        new THREE.Vector3(screenCx + w / 2, screenCy - h / 2, SCREEN_Z),
+        new THREE.Vector3(screenCx + w / 2, screenCy + h / 2, SCREEN_Z),
+        new THREE.Vector3(screenCx - w / 2, screenCy + h / 2, SCREEN_Z)
+      ];
+      const coneVerts = [];
+      for (let i = 0; i < 4; i++) {
+        const a = corners[i], b = corners[(i + 1) % 4];
+        coneVerts.push(apex.x, apex.y, apex.z, a.x, a.y, a.z, b.x, b.y, b.z);
+      }
+      viz3d.lightCone.geometry.dispose();
+      viz3d.lightCone.geometry = new THREE.BufferGeometry();
+      viz3d.lightCone.geometry.setAttribute('position', new THREE.Float32BufferAttribute(coneVerts, 3));
+      viz3d.lightCone.geometry.computeVertexNormals();
+
+      // Re-fit the camera not just once ever, but whenever the throw distance has changed enough that the
+      // old framing would no longer make sense (e.g. dragging the projector much further away in Side/Top
+      // View, which otherwise left the 3D View's camera right where it was, making the now much bigger
+      // scene look tiny). Only refitting past a relative-change threshold (not on every render) still
+      // leaves the user's manual orbit/zoom alone for small distance tweaks or pure shift dragging.
+      const distChangedSignificantly = viz3d.lastFitDist && Math.abs(dist - viz3d.lastFitDist) / viz3d.lastFitDist > 0.15;
+      if (!viz3d.cameraFitted || distChangedSignificantly) {
+        const dist3d = Math.max(dist, w, h, 1) * 1.1;
+        viz3d.camera.position.set(dist3d * 0.6, Math.max(h, 1) * 0.55, SCREEN_Z + dist3d * 0.5);
+        viz3d.controls.target.set(0, h / 2, SCREEN_Z + dist / 2);
+        viz3d.controls.update();
+        viz3d.cameraFitted = true;
+        viz3d.lastFitDist = dist;
+      }
+      updateShiftLabels();
+    }
+
+    function renderVisualization() {
+      const active = document.querySelector('.viz-tab.active').dataset.view;
+      if (active === 'front') renderFrontView();
+      else if (active === 'side') renderSideView();
+      else if (active === 'top') renderTopView();
+      else if (active === '3d') renderViz3d();
+
+      const row = getSelectedLensRow();
+      const isXP44ML = !!(row && (row.lens === 'XP44ML+XP01LK' || row.lens === 'XP44ML+XP02LK'));
+      document.getElementById('viz-44ml').style.display = isXP44ML ? 'block' : 'none';
+      if (isXP44ML) renderXP44MLDiagram();
+    }
+
+    function setupSvgDrag(svgId, targetSelector, onDrag, onStart = null, onEnd = null) {
+      const svg = document.getElementById(svgId);
+      let dragging = false, last = null;
+      svg.addEventListener('pointerdown', (e) => {
+        if (!e.target.closest(targetSelector)) return;
+        dragging = true;
+        last = svgToViewBox(svg, e.clientX, e.clientY);
+        svg.setPointerCapture(e.pointerId);
+        e.stopPropagation();
+        if (onStart) onStart();
+      });
+      svg.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        const cur = svgToViewBox(svg, e.clientX, e.clientY);
+        onDrag(cur.x - last.x, cur.y - last.y);
+        last = cur;
+      });
+      const stop = () => { if (dragging && onEnd) onEnd(); dragging = false; };
+      svg.addEventListener('pointerup', stop);
+      svg.addEventListener('pointercancel', stop);
+    }
+
+    setupSvgDrag('svg-front', '#front-image-rect', (dx, dy) => {
+      const g = vizGeom.front;
+      if (!g) return;
+      shiftState.h += dx / (g.w * g.scale);
+      shiftState.v += -dy / (g.h * g.scale);
+      clampShiftToSpec();
+      renderFrontView();
+    });
+
+    setupSvgDrag('svg-side', '#side-screen-rect', (dx, dy) => {
+      const g = vizGeom.side;
+      if (!g) return;
+      shiftState.v += -dy / g.sh;
+      clampShiftToSpec();
+      renderSideView();
+    });
+
+    setupSvgDrag('svg-side', '#side-projector-icon', (dx) => {
+      const g = vizGeom.side;
+      if (!g) return;
+      setProjectionDistance(getVizDistance() - dx / g.scale);
+    }, () => { duringProjectorDrag = true; }, () => { duringProjectorDrag = false; });
+
+    setupSvgDrag('svg-top', '#top-screen-rect', (dx, dy) => {
+      const g = vizGeom.top;
+      if (!g) return;
+      shiftState.h += -dy / g.sw;
+      clampShiftToSpec();
+      renderTopView();
+    });
+
+    setupSvgDrag('svg-top', '#top-projector-icon', (dx) => {
+      const g = vizGeom.top;
+      if (!g) return;
+      setProjectionDistance(getVizDistance() - dx / g.scale);
+    }, () => { duringProjectorDrag = true; }, () => { duringProjectorDrag = false; });
+
+    document.getElementById('shift-center-btn').addEventListener('click', () => {
+      shiftState.h = 0;
+      shiftState.v = 0;
+      renderVisualization();
+    });
+
+    document.querySelectorAll('.viz-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.viz-panel').forEach(p => p.style.display = 'none');
+        document.getElementById(`viz-${tab.dataset.view}`).style.display = 'block';
+        renderVisualization();
+      });
+    });
+
     // Event Listeners
     ['width', 'height', 'diagonal'].forEach(id => {
       const el = document.getElementById(id);
@@ -394,16 +1660,34 @@
     });
 
     document.getElementById('aspect').addEventListener('change', () => { updateImageSize('diagonal'); });
-    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); });
-    document.getElementById('distance').addEventListener('input', renderLensTable);
+    document.getElementById('units').addEventListener('change', () => { applyUnitConversion(); renderLensTable(); renderVisualization(); });
+    document.getElementById('distance').addEventListener('input', () => { renderLensTable(); renderVisualization(); });
     document.getElementById('gain').addEventListener('change', renderLensTable);
     document.getElementById('gain-brightness').addEventListener('change', updateBrightness);
     document.getElementById('ambient').addEventListener('input', updateBrightness);
     modelSelect.addEventListener('change', () => {
-      const proj = database.find(l => l.model === modelSelect.value);
+      populateLensSelect();
+      const proj = getSelectedLensRow();
       if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
+      shiftState.h = 0;
+      shiftState.v = 0;
+      if (viz3d) viz3d.cameraFitted = false;
+      reconcileLensChange();
       renderLensTable();
       updateBrightness();
+      renderVisualization();
+    });
+
+    lensSelect.addEventListener('change', () => {
+      const proj = getSelectedLensRow();
+      if (proj) document.getElementById('lumens-display').textContent = proj.lumens;
+      shiftState.h = 0;
+      shiftState.v = 0;
+      if (viz3d) viz3d.cameraFitted = false;
+      reconcileLensChange();
+      renderLensTable();
+      updateBrightness();
+      renderVisualization();
     });
 
     document.getElementById('requirement').addEventListener('change', () => {
@@ -418,8 +1702,9 @@
       
       // Set default model and trigger full brightness calculation
       if (uniqueModels.length > 0) {
-        modelSelect.value = uniqueModels[0];
-        const proj = database.find(l => l.model === modelSelect.value);
+        modelSelect.value = uniqueModels.includes('XP-A824U-W') ? 'XP-A824U-W' : uniqueModels[0];
+        populateLensSelect();
+        const proj = getSelectedLensRow();
         if (proj) {
           document.getElementById('lumens-display').textContent = proj.lumens;
         }
@@ -427,6 +1712,7 @@
       
       renderLensTable();
       updateBrightness();   // Ensure Illuminance shows on refresh
+      renderVisualization();
     };
   </script>
 </body>
